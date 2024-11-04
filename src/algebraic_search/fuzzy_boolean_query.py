@@ -1,6 +1,6 @@
 import re
 from typing import List, Union, Callable
-from result_query import ResultQuery
+from .result_query import ResultQuery
 
 class FuzzyBooleanQuery:
     """
