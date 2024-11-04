@@ -1,5 +1,6 @@
 import re
 from typing import List, Union
+from result_query import ResultQuery
 
 class BooleanQuery:
     """
@@ -9,39 +10,32 @@ class BooleanQuery:
 
     ## Formal Theory
 
-    **Homomorphism Between Query and Result Algebras**
+    Q = (P(T*), and, or, not, {}, T*)
 
-    The evaluation function `eval` serves as a **homomorphism** between the Query Algebra (`Q`) and the Result Algebra (`R`). Formally, a homomorphism `φ: Q → R` satisfies the following properties:
+    where:
+    - T is the set of all characters,
+    - T* is the set of all strings of characters,
+    - {} is the empty set,
+    - P(T*) is the power set of T*.
 
-    - **Preservation of Operations**:
-        - `φ(Q1 & Q2) = φ(Q1) & φ(Q2)`
-        - `φ(Q1 | Q2) = φ(Q1) | φ(Q2)`
-        - `φ(~Q1) = ~φ(Q1)`
-    - **Preservation of Constants**:
-        - `φ({}) = {}` (Empty set)
-        - `φ(T*) = D` (Universal set of documents)
+    This framework allows constructing queries such as:
+        "(or (and cat dog) (not (or fish bird)))"
+    which is internally represented as:
+        ['or', ['and', 'cat', 'dog'], ['not', ['or', 'fish', 'bird']]]
 
-    This homomorphic relationship ensures that the logical structure of queries is faithfully represented in the evaluation results.
+    Queries can also be combined using Python operators:
+        Q1 & Q2  # Represents logical AND
+        Q1 | Q2  # Represents logical OR
+        ~Q1      # Represents logical NOT
 
-    Theory:
-    -------
-        Q = (P(T*), and, or, not, {}, T*)
-
-        where:
-            - T is the set of all characters,
-            - T* is the set of all strings of characters,
-            - {} is the empty set,
-            - P(T*) is the power set of T*.
-
-        This framework allows constructing queries such as:
-            "(or (and cat dog) (not (or fish bird)))"
-        which is internally represented as:
-            ['or', ['and', 'cat', 'dog'], ['not', ['or', 'fish', 'bird']]]
-
-        Queries can also be combined using Python operators:
-            Q1 & Q2  # Represents logical AND
-            Q1 | Q2  # Represents logical OR
-            ~Q1     # Represents logical NOT
+    ## Evaluation
+    
+    The evaluation of queries is performed by the `eval` method, which takes a
+    list of documents and returns a ResultQuery instance indicating which
+    documents match the query. The ResultQuery instance is itself a Boolean
+    algebra, where the query results are elements of the algebra. Thus,
+    the evaluation function `eval` serves as a homomorphism `eval: Q -> R`
+    that preserves the algebraic structure. See `ResultQuery` for more details.
     """
 
     def __init__(self, query: Union[str, List] = None):
@@ -76,8 +70,6 @@ class BooleanQuery:
         Raises:
             ValueError: If there are mismatched parentheses or unexpected tokens.
         """
-        tokens = re.findall(r'\b\w+\b|\(|\)', query)
-
         def _build(tokens: List) -> List:
             if not tokens:
                 raise ValueError("Unexpected end of query.")
@@ -85,6 +77,8 @@ class BooleanQuery:
             if tokens[0] == '(':
                 tokens.pop(0) # Remove '('
 
+            if not tokens:
+                raise ValueError("Unexpected end of query after '('.")
 
             if tokens[0].lower() not in ['and', 'or', 'not']:
                 op = 'and'
@@ -104,9 +98,10 @@ class BooleanQuery:
 
             return result
 
+        tokens = re.findall(r'\b\w+\b|\(|\)', query)
         return _build(tokens)
 
-    def eval(self, docs: List) -> List[bool]:
+    def eval(self, docs: List) -> ResultQuery:
         """
         Evaluate the query against a list of documents.
 
@@ -139,7 +134,8 @@ class BooleanQuery:
         if not isinstance(docs, list):
             docs = [docs]
 
-        return [_eval(self.tokens, doc) for doc in docs]
+        results = [_eval(self.tokens, doc) for doc in docs]
+        return ResultQuery(results)
 
     def __and__(self, other: 'BooleanQuery') -> 'BooleanQuery':
         """

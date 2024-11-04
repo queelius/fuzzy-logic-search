@@ -2,29 +2,55 @@ from typing import List, Union
 
 class ResultQuery:
     """
-    A class representing the evaluation results of a Query.
+    A class representing the evaluation results of a query.
 
-    ## Formal Theory
+    ## Formal Theory: Boolean Algebra Over Query Results
 
-    **Result Algebra (R)**:
+    The evaluation results of a query can be represented as a Boolean algebra,
+    where the query results are elements of the algebra. Using conventional
+    notation, the algebra is defined as follows:
 
-    - **Elements**: `R = [r_1, r_2, ..., r_n]` where each `r_i` ∈ [0, 1] represents the degree of membership of the i-th document in the query result.
-    - **Operations**:
-        - **AND (`&`)**: Element-wise minimum.
-        - **OR (`|`)**: Element-wise maximum.
-        - **NOT (`~`)**: Element-wise complement (`1 - r_i`).
+        (R=P([0, 1]^n), and=&, or=|, not=~, bottom=0, top=1)
 
-    These operations form a Boolean algebra when results are binary (0 or 1) and a fuzzy Boolean algebra when results are in the continuous range [0, 1].
+    - `R = [r_1, r_2, ..., r_n]` where each `r_i` ∈ [0, 1] represents the
+      degree-of-membership of the i-th document in the query result.
+    - `&` is the element-wise minimum.
+    - `|` is the element-wise maximum.
+    - `~` is the element-wise complement (`1 - r_i`).
 
-    **Homomorphism Between Query and Result Algebras**:
+    These operations form a Boolean algebra when results are binary (0 or 1)
+    and a fuzzy Boolean algebra when results are in the continuous range [0, 1].
 
-    The evaluation function `eval` in the `Query` class serves as a homomorphism `φ: Q → R` that preserves the algebraic structure:
+    ## Homomorphism between queries (like BooleanQuery) and ResultQuery
+
+    The evaluation function `eval` in, for instance, the `BooleanQuery` class
+    serves as a homomorphism `eval: Q -> R` that preserves the algebraic
+    structure:
     
-    - `φ(Q1 & Q2) = φ(Q1) & φ(Q2)`
-    - `φ(Q1 | Q2) = φ(Q1) | φ(Q2)`
-    - `φ(~Q1) = ~φ(Q1)`
+    - `eval(Q1 & Q2) = eval(Q1) & eval(Q2)`
+    - `eval(Q1 | Q2) = eval(Q1) | eval(Q2)`
+    - `eval(~Q1) = ~eval(Q1)`
 
-    This ensures that the logical composition of queries translates appropriately to the combination of their evaluation results.
+    This ensures that the logical composition of queries translates
+    appropriately to the combination of their evaluation results.
+
+    ## Fuzzy Operations
+
+    We also provide a range of built-in fuzzy operations that can be applied
+    to the evaluation results of a query:
+
+    - `very`: Squares the degree-of-membership of each document.
+    - `somewhat`: Takes the square root of the degree-of-membership of each document.
+    - `slightly`: Takes the 10th root of the degree-of-membership of each document.
+    - `extremely`: Cubes the degree-of-membership of each document.
+    - `binary`: Maps the degree-of-membership of each document to 0 if it is less
+        than 0.5, and 1 otherwise.
+    - `true`: Maps the degree-of-membership of each document to 1.
+    - `false`: Maps the degree-of-membership of each document to 0.
+    - `map`: Maps the degree-of-membership of each document to 0 if it is less than
+      a specified threshold, and 1 otherwise.
+
+    Of course, you are free to define your own fuzzy operations as needed.
     """
 
     def __init__(self, scores: List[float]):
@@ -54,8 +80,20 @@ class ResultQuery:
     def slightly(self) -> 'ResultQuery':
         return ResultQuery([score ** 0.1 for score in self.scores])
     
+    def extremely(self) -> 'ResultQuery':
+        return ResultQuery([score ** 3 for score in self.scores])
+    
     def map(self, threshold: float) -> 'ResultQuery':
         return ResultQuery([0 if score < threshold else 1 for score in self.scores])    
+    
+    def binary(self) -> 'ResultQuery':
+        return self.map(0.5)
+    
+    def true(self) -> 'ResultQuery':
+        return [1.0 for _ in self.scores]
+    
+    def false(self) -> 'ResultQuery':
+        return [0.0 for _ in self.scores]
     
     def __eq__(self, other: 'ResultQuery') -> bool:
         return self.scores == other.scores
