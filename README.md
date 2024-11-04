@@ -29,20 +29,14 @@ A flexible Python framework for constructing, combining, and evaluating Boolean 
 
 ## Installation
 
-Ensure you have Python 3.7 or higher installed. Install the required dependencies using `pip`:
-
-```bash
-pip install scikit-learn
-```
+Ensure you have Python 3.7 or higher installed.
 
 Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/boolean-fuzzy-query-framework.git
-cd boolean-fuzzy-query-framework
+git clone https://github.com/queelius/algebraic_search.git
+cd algebraic_search
 ```
-
-*(Replace `https://github.com/yourusername/boolean-fuzzy-query-framework.git` with your actual repository URL.)*
 
 ## Usage
 
@@ -54,10 +48,10 @@ Create and evaluate strict Boolean queries to determine document matches based o
 from boolean_query import BooleanQuery, ResultQuery
 
 # Initialize BooleanQuery instances
-q1 = BooleanQuery("cat dog")
+q1 = BooleanQuery("cat dog") # same as BooleanQuery("(and cat dog)")
 q2 = BooleanQuery("(or fish bird)")
 q3 = ~q2
-combined_query = q1 & q3  # Represents "(and (and cat dog) (not (or fish bird)))"
+q4 = q1 & q3  # Represents "(and (and cat dog) (not (or fish bird)))"
 
 # Example documents as sets
 documents = [
@@ -73,9 +67,10 @@ documents = [
 ]
 
 # Evaluate queries against documents
-results_combined = combined_query.eval(documents)
-print(combined_query)  # Output: (and (and cat dog) (not (or fish bird)))
-print(results_combined)
+results = q4.eval(documents)
+print(q4)
+# Output: (and (and cat dog) (not (or fish bird)))
+print(results)
 # Output: ResultQuery([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 ```
 
@@ -106,13 +101,12 @@ tfidf_scores, vocabulary = FuzzyBooleanQuery.compute_tfidf(documents_text)
 q1_fuzzy = FuzzyBooleanQuery("cat dog", tfidf_matrix=tfidf_scores, vocabulary=vocabulary)
 q2_fuzzy = FuzzyBooleanQuery("(or fish bird)", tfidf_matrix=tfidf_scores, vocabulary=vocabulary)
 q3_fuzzy = ~q2_fuzzy
-combined_query_fuzzy = q1_fuzzy & q3_fuzzy  # Represents "(and (and cat dog) (not (or fish bird)))"
+q4_fuzzy = q1_fuzzy & q3_fuzzy  # Represents "(and (and cat dog) (not (or fish bird)))"
 
 # Evaluate queries against documents
-results_combined_fuzzy = combined_query_fuzzy.eval(documents_text)
-print(combined_query_fuzzy)  # Output: (and (and cat dog) (not (or fish bird)))
-print(results_combined_fuzzy)
-# Output: ResultQuery([...]) with float scores
+results = q4_fuzzy.eval(documents_text)
+print(q4_fuzzy) # Output: (and (and cat dog) (not (or fish bird)))
+print(results)  # Output: ResultQuery([...]) with float scores
 ```
 
 ## API Documentation
@@ -283,8 +277,8 @@ Contributions are welcome! Please follow these steps:
 1. **Fork the Repository**: Click the "Fork" button on the repository page.
 2. **Clone Your Fork**:
    ```bash
-   git clone https://github.com/yourusername/boolean-fuzzy-query-framework.git
-   cd boolean-fuzzy-query-framework
+   git clone https://github.com/queelius/algebraic_search.git
+   cd algebraic_search
    ```
 3. **Create a New Branch**:
    ```bash
