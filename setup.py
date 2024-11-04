@@ -7,7 +7,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="algebraic_search",
-    version="0.1.1",
+    version="0.1.2",
     description="A Python library for algebraic search.",
     author="Alex Towell",
     author_email="lex@metafunctor.com",
