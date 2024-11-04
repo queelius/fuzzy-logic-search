@@ -147,18 +147,15 @@ A class for constructing and evaluating fuzzy Boolean queries with degrees of me
 #### Initialization
 
 ```python
-FuzzyBooleanQuery(query: Union[str, List] = None, tfidf_matrix: List[Dict[str, float]] = None, vocabulary: Dict[str, int] = None)
+FuzzyBooleanQuery(query: Union[str, List])
 ```
 
 - `query`: A query string or list of tokens.
-- `tfidf_matrix`: Precomputed TF-IDF scores for each document, represented as a list of dictionaries mapping terms to their TF-IDF scores.
-- `vocabulary`: A dictionary mapping terms to their indices in the TF-IDF vectors.
 
 #### Methods
 
 - `tokenize(query: str) -> List`: Parses the query string into a nested list structure, recognizing fuzzy modifiers.
-- `compute_tfidf(documents: List[str]) -> (List[Dict[str, float]], Dict[str, int])`: Static method to compute TF-IDF scores for a list of documents.
-- `eval(docs: List[str]) -> ResultQuery`: Evaluates the fuzzy query against a list of documents using TF-IDF scores.
+- `eval(docs: List[str], ranker: Callable) -> ResultQuery`: Evaluates the fuzzy query against a list of documents using some ranker, like a normalized TF-IDF score.
 - Operator Overloads:
   - `&`: Logical AND (fuzzy)
   - `|`: Logical OR (fuzzy)
@@ -167,8 +164,8 @@ FuzzyBooleanQuery(query: Union[str, List] = None, tfidf_matrix: List[Dict[str, f
 #### Example
 
 ```python
-q_fuzzy = FuzzyBooleanQuery("cat dog", tfidf_matrix=tfidf_scores, vocabulary=vocabulary)
-result_fuzzy = q_fuzzy.eval(["cat dog", "dog", "cat"])
+q_fuzzy = FuzzyBooleanQuery("cat dog")
+result_fuzzy = q_fuzzy.eval(docs, ranker=lambda term, doc: 1.0 if term in doc else 0.0)
 print(result_fuzzy)  # ResultQuery([...])
 ```
 

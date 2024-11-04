@@ -3,11 +3,12 @@ from setuptools import setup, find_packages
 setup(
     name="algebraic_search",
     version="0.1.0",
-    description="A description of my package",
+    description="A Python library for algebraic search.",
     author="Alex Towell",
     author_email="lex@metafunctor.com",
     url="https://github.com/queelius/algebraic_search",  # GitHub or other repo URL
-    packages=find_packages(exclude=["tests"]),
+    package_dir={"": "src"},
+    packages=find_packages(where="src"),
     install_requires=[
         # Add dependencies here, e.g., "numpy>=1.21.0"
     ],
