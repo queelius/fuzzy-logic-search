@@ -1,8 +1,10 @@
 # Boolean and Fuzzy Boolean Query Framework
 
-NOTE: Very early stage. Intend to implement things like fuzzy boolean searching over JSON fields, etc. It should have minimal dependencies and work without
+NOTE: Very early stage. I  have also implemented fuzzy queries on JSON documents, allowing you to specify field paths, and various predicates on field paths
+(including paths with wildcards). It should have minimal dependencies and work without
 building a database (the raw files will be the representation of the database). All queries are JSON already, so it should be easy to integrate it in web APIs.
-The below documentation is not exactly right, since I just asked an LLM to generate it and I haven't had enough time to refine it and fix it. The foundation of this work is based on Boolean algebras and homomorphisms between the queries and the results. It will have a robust command line tool for doing all of this from the command line, but it'll be a fully developed library that can be integrated into any project.
+The documentation is out of date.
+
 
 A flexible Python framework for constructing, combining, and evaluating Boolean and Fuzzy Boolean queries against a collection of documents. This framework supports both strict binary evaluations and degrees-of-membership evaluations, laying the groundwork for advanced fuzzy set-theoretic query capabilities.
 
