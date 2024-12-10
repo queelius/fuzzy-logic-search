@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.39">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>readme</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="README_files/libs/clipboard/clipboard.min.js"></script>
+<script src="README_files/libs/quarto-html/quarto.js"></script>
+<script src="README_files/libs/quarto-html/popper.min.js"></script>
+<script src="README_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="README_files/libs/quarto-html/anchor.min.js"></script>
+<link href="README_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="README_files/libs/quarto-html/quarto-syntax-highlighting-e26003cea8cd680ca0c55a263523d882.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="README_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="README_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="README_files/libs/bootstrap/bootstrap-6557ce804185a42b51bfe31343ca79d9.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"></header>
+
+
+
+
+<p>Below is an updated <code>README.md</code> that incorporates your additional points about custom predicates, flat documents, TF-IDF scoring, and a more detailed discussion of the homomorphism, including examples. This version aims to maintain an academic and pedagogical tone while providing concrete information for practitioners.</p>
+<hr>
+<section id="fuzzy-logic-search" class="level1">
+<h1>fuzzy-logic-search</h1>
+<p><strong>fuzzy-logic-search</strong> is an academic and practical framework for querying structured and unstructured documents using fuzzy logic principles. Unlike traditional Boolean search techniques that yield a binary match or non-match, <strong>fuzzy-logic-search</strong> produces a continuous score in the range [0, 1], indicating the <em>degree-of-membership (DoM)</em>—or relevance—of each document to the given query.</p>
+<p>This system supports queries on both structured JSON documents and flat text files, offering a uniform fuzzy logic interface to a variety of data sources. Users can compose queries using logical operators, quantifiers, modifiers, and custom predicates that return continuous or crisp DoM values, enabling rich, human-centric querying.</p>
+<hr>
+<section id="table-of-contents" class="level2">
+<h2 class="anchored" data-anchor-id="table-of-contents">Table of Contents</h2>
+<ol type="1">
+<li><a href="#introduction">Introduction</a><br>
+</li>
+<li><a href="#core-concepts">Core Concepts</a><br>
+</li>
+<li><a href="#why-fuzzy-logic">Why Fuzzy Logic?</a><br>
+</li>
+<li><a href="#document-models-and-identity">Document Models and Identity</a><br>
+</li>
+<li><a href="#query-syntax-and-semantics">Query Syntax and Semantics</a><br>
+</li>
+<li><a href="#custom-predicates-and-extensibility">Custom Predicates and Extensibility</a><br>
+</li>
+<li><a href="#flat-document-support">Flat Document Support</a><br>
+</li>
+<li><a href="#homomorphism-theory-and-examples">Homomorphism: Theory and Examples</a><br>
+</li>
+<li><a href="#evaluation-and-post-processing">Evaluation and Post-Processing</a><br>
+</li>
+<li><a href="#examples">Examples</a><br>
+</li>
+<li><a href="#applications-and-use-cases">Applications and Use Cases</a><br>
+</li>
+<li><a href="#future-directions">Future Directions</a><br>
+</li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr>
+</section>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>Conventional search often treats queries and documents as sharply delineated: a document either matches the query or it does not. Real-world reasoning, however, is often more nuanced. <strong>fuzzy-logic-search</strong> introduces gradation, allowing documents to match queries to varying extents. This can be crucial when dealing with heterogeneous datasets, ambiguous search terms, or user queries that are not strictly binary.</p>
+<hr>
+</section>
+<section id="core-concepts" class="level2">
+<h2 class="anchored" data-anchor-id="core-concepts">Core Concepts</h2>
+<ol type="1">
+<li><p><strong>Fuzzy Sets</strong>:<br>
+A fuzzy set assigns to each element a membership value in [0, 1]. In <strong>fuzzy-logic-search</strong>, each document is assigned a degree of relevance to the query, reflecting partial matches rather than absolute inclusion or exclusion.</p></li>
+<li><p><strong>Fuzzy Operations</strong>:<br>
+Logical operators from Boolean logic (<code>and</code>, <code>or</code>, <code>not</code>) are extended using fuzzy logic. For instance:</p>
+<ul>
+<li><code>and</code> → <em>minimum</em> of the membership scores,</li>
+<li><code>or</code> → <em>maximum</em> of the membership scores,</li>
+<li><code>not</code> → <em>1 minus</em> the membership score.</li>
+</ul></li>
+<li><p><strong>Linguistic Hedges (Modifiers)</strong>:<br>
+Terms like <code>very</code> and <code>somewhat</code> transform membership values. For example:</p>
+<ul>
+<li><code>very Q</code> might square the DoM, emphasizing already-strong matches.</li>
+<li><code>somewhat Q</code> might take a square root, broadening tolerance to partial matches.</li>
+</ul></li>
+</ol>
+<hr>
+</section>
+<section id="why-fuzzy-logic" class="level2">
+<h2 class="anchored" data-anchor-id="why-fuzzy-logic">Why Fuzzy Logic?</h2>
+<p>Fuzzy logic better models how humans interpret queries. Instead of forcing binary decisions, it allows for degrees of satisfaction. Benefits include:</p>
+<ul>
+<li><strong>Graduated Transitions</strong>: Smoothly vary between full match and no match, rather than abrupt cutoffs.</li>
+<li><strong>Complex Queries</strong>: Easily combine multiple conditions (e.g., <code>(and (field age (&gt; 25)) (field name (contains "Smith")))</code>) and produce nuanced relevance scores.</li>
+<li><strong>Interpretability and Flexibility</strong>: Fuzzy sets can be interpreted directly as numeric scores or, if desired, mapped back to linguistic categories (like “very relevant”) through optional defuzzification.</li>
+</ul>
+<hr>
+</section>
+<section id="document-models-and-identity" class="level2">
+<h2 class="anchored" data-anchor-id="document-models-and-identity">Document Models and Identity</h2>
+<p><strong>fuzzy-logic-search</strong> supports two primary document types:</p>
+<ol type="1">
+<li><strong>Structured JSON Documents</strong>:<br>
+Each JSON document may reside in its own file or be provided programmatically as a Python dictionary. Documents are identified by:
+<ul>
+<li><strong>Filename</strong>: If loading from a file, the filename serves as the document’s ID.</li>
+<li><strong>Hash</strong>: If provided as a dictionary, a hash of the document is used as its ID.</li>
+<li><strong>Index</strong>: If documents are provided in a list with no other identifiers, their list index is used.</li>
+</ul></li>
+<li><strong>Flat Documents (e.g., <code>.txt</code>, <code>.md</code>)</strong>:<br>
+When fields are not applicable, documents are treated as raw text. Queries default to fuzzy logic operations on content-based similarity (e.g., normalized TF-IDF scores), providing a DoM that represents how well the document’s text aligns with the query terms.</li>
+</ol>
+<hr>
+</section>
+<section id="query-syntax-and-semantics" class="level2">
+<h2 class="anchored" data-anchor-id="query-syntax-and-semantics">Query Syntax and Semantics</h2>
+<p>Queries are represented as abstract syntax trees (ASTs), enabling complex, composable logic. For example:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode lisp code-with-copy"><code class="sourceCode commonlisp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">and</span> </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  (field x (== <span class="dv">1</span>)) </span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  (<span class="kw">not</span> (field y (startswith z))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This may parse to:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"and"</span><span class="ot">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="ot">[</span><span class="st">"field"</span><span class="ot">,</span> <span class="st">"x"</span><span class="ot">,</span> <span class="ot">[</span><span class="st">"=="</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">]],</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="ot">[</span><span class="st">"not"</span><span class="ot">,</span> <span class="ot">[</span><span class="st">"field"</span><span class="ot">,</span> <span class="st">"y"</span><span class="ot">,</span> <span class="ot">[</span><span class="st">"startswith"</span><span class="ot">,</span> <span class="st">"z"</span><span class="ot">]]]</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ot">]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><strong>Key Components</strong>: - <strong>field path</strong>: Specifies where in a JSON document to look. - <strong>predicates</strong>: Such as <code>==</code>, <code>&gt;</code>, <code>&lt;</code>, <code>startswith</code>, or <code>contains</code>, yield a membership value.<br>
+- <strong>logical operators</strong>: <code>and</code>, <code>or</code>, <code>not</code> apply fuzzy logic to combine or modify conditions. - <strong>modifiers</strong>: <code>very</code>, <code>somewhat</code> and others can transform membership values.</p>
+<hr>
+</section>
+<section id="custom-predicates-and-extensibility" class="level2">
+<h2 class="anchored" data-anchor-id="custom-predicates-and-extensibility">Custom Predicates and Extensibility</h2>
+<p><strong>fuzzy-logic-search</strong> is fully extensible. Users can define their own predicates with custom membership logic. While default predicates often map to crisp Boolean tests (yielding 0.0 or 1.0), advanced users can integrate domain-specific scoring functions that return continuous values.</p>
+<p>For example, you can define a custom predicate <code>_similar(ob, doc)</code> that returns a continuous similarity measure (e.g., cosine similarity, Jaccard index, or a learned embedding distance) normalized to [0,1].</p>
+<p>Here is a snippet from the default predicate set (simplified):</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _contains(ob, doc, quant<span class="op">=</span><span class="bu">all</span>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">isinstance</span>(ob, <span class="bu">list</span>):</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">float</span>(quant(<span class="bu">str</span>(o) <span class="kw">in</span> <span class="bu">str</span>(doc) <span class="cf">for</span> o <span class="kw">in</span> ob))</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">float</span>(<span class="bu">str</span>(ob) <span class="kw">in</span> <span class="bu">str</span>(doc))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This returns 1.0 if <code>doc</code> contains <code>ob</code>, and 0.0 otherwise. Users can replace this logic or add new predicates that compute partial matches, graded similarities, or probabilistic scores.</p>
+<hr>
+</section>
+<section id="flat-document-support" class="level2">
+<h2 class="anchored" data-anchor-id="flat-document-support">Flat Document Support</h2>
+<p>For flat documents without structured fields, <strong>fuzzy-logic-search</strong> defaults to similarity-based measures. For instance, when you query <code>(contains "Smith")</code> over a <code>.txt</code> file, an internal TF-IDF-based scoring mechanism might produce a relevance score proportional to the frequency and distinctiveness of <code>"Smith"</code> in the document. Thus, even plain text searches benefit from fuzzy logic, capturing how “strongly” a document matches rather than requiring an exact condition.</p>
+<hr>
+</section>
+<section id="homomorphism-theory-and-examples" class="level2">
+<h2 class="anchored" data-anchor-id="homomorphism-theory-and-examples">Homomorphism: Theory and Examples</h2>
+<p>A notable mathematical property of this system is that the mapping from queries (<code>Q</code>) to result sets (<code>R</code>) is a <strong>homomorphism</strong>. This means:</p>
+<ol type="1">
+<li>Operations on queries translate directly to operations on their corresponding fuzzy result sets.</li>
+<li>If you have queries <code>Q1</code> and <code>Q2</code>, and their corresponding result sets <code>R1</code> and <code>R2</code>, then: [ (Q1 ,, Q2) = (Q1) ,, (Q2) = R1 R2 ] where the <code>and</code> operation on results is applied element-wise to their membership values.</li>
+</ol>
+<p><strong>Example</strong>:<br>
+- Suppose <code>Q1(d)</code> assigns a relevance of 0.8 to document <code>d</code>, and <code>Q2(d)</code> assigns 0.6.<br>
+- <code>Q1 and Q2</code> would assign <code>min(0.8, 0.6) = 0.6</code> to <code>d</code>.<br>
+- Likewise, the result sets <code>R1</code> and <code>R2</code> induced by <code>Q1</code> and <code>Q2</code> would yield a result <code>R = R1 and R2</code> that has the same minimal intersection membership.</p>
+<p>This property ensures <strong>consistency and predictability</strong>: whether you combine fuzzy sets at the query level or at the result level, you arrive at the same final degrees of membership.</p>
+<p><strong>Non-Invertibility</strong>:<br>
+While we can map <code>Q</code> to <code>R</code>, we cannot uniquely recover <code>Q</code> from <code>R</code>. Different queries may produce identical result sets, so the process is not invertible.</p>
+<hr>
+</section>
+<section id="evaluation-and-post-processing" class="level2">
+<h2 class="anchored" data-anchor-id="evaluation-and-post-processing">Evaluation and Post-Processing</h2>
+<p>Evaluating a query <code>Q</code> over a document set <code>D</code> yields a fuzzy set <code>R</code>: [ R = {(d, Q(d)) d D } ]</p>
+<p>Since both queries and results are fuzzy sets, you can post-process <code>R</code> using the same operations: - Apply logical operators to combine multiple result sets (<code>R = R1 and (not R2)</code>). - Use modifiers on results directly (<code>very R</code>), sharpening or broadening the final membership values without re-running the original queries.</p>
+<p>This flexible architecture encourages iterative refinement, experimentation, and dynamic adjustment of search results after the initial computation.</p>
+<hr>
+</section>
+<section id="examples" class="level2">
+<h2 class="anchored" data-anchor-id="examples">Examples</h2>
+<p><strong>Simple Structured Query</strong>:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode lisp code-with-copy"><code class="sourceCode commonlisp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>(field age (<span class="op">&gt;</span> <span class="dv">25</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>For a document <code>{"age": 30}</code>, this might yield a high membership (close to 1.0), while <code>{"age": 20}</code> might yield a lower membership (0.0 if crisp, or a partial score if using a graded comparison).</p>
+<p><strong>Compound Query</strong>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode lisp code-with-copy"><code class="sourceCode commonlisp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">and</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  (field address.city (== <span class="st">"New York"</span>))</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  (<span class="kw">not</span> (field age (<span class="op">&lt;</span> <span class="dv">25</span>))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This increases membership for documents whose <code>address.city</code> closely matches <code>"New York"</code> and whose <code>age</code> is not less than 25, combining these conditions fuzzily.</p>
+<p><strong>Post-Processing</strong>: If <code>R1</code> results from <code>Q1</code>, and <code>R2</code> from <code>Q2</code>, you can form a new result set:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode lisp code-with-copy"><code class="sourceCode commonlisp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>R <span class="op">=</span> very (R1 <span class="kw">or</span> R2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This applies the <code>or</code> (max) operation at the result level and then the <code>very</code> modifier to emphasize top matches.</p>
+<hr>
+</section>
+<section id="applications-and-use-cases" class="level2">
+<h2 class="anchored" data-anchor-id="applications-and-use-cases">Applications and Use Cases</h2>
+<ul>
+<li><strong>Search Engines</strong>: Instead of returning a binary match, yield graded results that reflect partial matches and relevance strength.</li>
+<li><strong>Recommendation Systems</strong>: Combine multiple user preference queries fuzzily, weighting attributes like price, popularity, and genre to produce a nuanced recommendation score.</li>
+<li><strong>Data Analysis</strong>: Query large JSON datasets or plain text corpora with flexible, human-like reasoning, enabling exploratory data analysis and gradual refinement of search criteria.</li>
+</ul>
+<hr>
+</section>
+<section id="future-directions" class="level2">
+<h2 class="anchored" data-anchor-id="future-directions">Future Directions</h2>
+<ol type="1">
+<li><strong>Adaptive Defuzzification</strong>: Map membership scores back to linguistic categories (e.g., “highly relevant”, “mildly relevant”) for user-facing explanations.</li>
+<li><strong>Advanced Similarity Measures</strong>: Integrate vector-based semantic similarity or machine learning–derived embeddings to produce more meaningful fuzzy matches.</li>
+<li><strong>Performance and Indexing</strong>: Scale to larger datasets with indexing and caching strategies, ensuring efficiency without compromising fuzzy logic principles.</li>
+</ol>
+<hr>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<ul>
+<li>Zadeh, L. A. (1965). <em>Fuzzy sets.</em> Information and Control, 8(3), 338–353.</li>
+<li>Klir, G. J., &amp; Yuan, B. (1995). <em>Fuzzy sets and fuzzy logic: theory and applications.</em> Prentice Hall.</li>
+<li>Zimmermann, H.-J. (1996). <em>Fuzzy set theory—and its applications.</em> Springer.</li>
+</ul>
+<hr>
+<p><strong>fuzzy-logic-search</strong> offers a unified, theory-driven approach to querying documents—both structured and unstructured—through the lens of fuzzy logic. It encourages a more nuanced view of relevance, supports extensibility through custom predicates, and maintains a homomorphism between queries and their result sets. Ultimately, it stands as both a pedagogical tool and a practical system for modern information retrieval scenarios.</p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

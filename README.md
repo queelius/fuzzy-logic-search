@@ -1,74 +1,90 @@
+# fuzzy-logic-search
 
-# Fuzzy Logic Search
+**fuzzy-logic-search** is an academic and practical framework for querying structured and unstructured documents using fuzzy logic principles. Unlike traditional Boolean search techniques that yield a binary match or non-match, **fuzzy-logic-search** produces a continuous score in the range [0, 1], indicating the *degree-of-membership (DoM)*—or relevance—of each document to the given query.
 
-A flexible and expressive system for querying structured JSON documents using
-fuzzy logic principles. This system enables users to construct complex queries
-that return fuzzy sets of results, capturing the degree of relevance of each
-document to the query.
-
-> We also support flat files. In this case, a compelling degree of relevance 
-> score is something like a normalized `tf-idf` score on matching keywords in the
-> query and the document. You could still use something like a levenshtein
-> distance insetad, but it would likely not satisfy the information retrieval
-> principles as well as `tf-idf` would.
+This system supports queries on both structured JSON documents and flat text files, offering a uniform fuzzy logic interface to a variety of data sources. Users can compose queries using logical operators, quantifiers, modifiers, and custom predicates that return continuous or crisp DoM values, enabling rich, human-centric querying.
 
 ---
 
-## Features
+## Table of Contents
 
-- **Fuzzy Querying**: 
-  - Construct queries using logical operators (`and`, `or`, `not`), modifiers (`very`, `somewhat`), and comparison predicates (`==`, `contains`, `startswith`, etc.).
-  - Queries are expressed as structured abstract syntax trees (ASTs) for modularity and extensibility.
-- **Structured Document Support**:
-  - Operates on JSON documents stored as separate files in directories or provided as direct dictionary inputs.
-- **Dual Fuzzy Representation**:
-  - Queries are fuzzy sets, representing the degree of relevance of all documents.
-  - Results are fuzzy sets, associating documents with degrees of membership (relevance).
-- **Homomorphic Operations**:
-  - Logical and modifier operations applied to queries propagate to result sets consistently.
-- **Post-Processing Flexibility**:
-  - Modify result sets dynamically with operations like `very`, `not`, or logical combinations.
-
----
-
-## Document Identity System
-
-### **1. File-Based Documents**
-If documents are stored as separate JSON files, their **filename** serves as their unique identifier:
-```json
-{ "id": "funny.json", "relevance": 0.85 }
-```
-
-### **2. Hash-Based Identity**
-If a JSON document is directly provided as a Python dictionary (e.g., via an API call), the system computes its **hash** to ensure a unique identity:
-```json
-{ "id": "abc123hash", "relevance": 0.85 }
-```
-
-### **3. Index-Based Identity**
-In cases where documents are part of a list or batch with no explicit filenames or hashes, the **list index** serves as the identity:
-```json
-[ ..., 0.85, ... ]
-```
-- Example result: \( \{ "id": 5, "relevance": 0.85 \} \), where `id = 5` refers to the document’s position in the input list.
-
-This flexible identity system ensures robust tracking of documents regardless of their source or storage format.
+1. [Introduction](#introduction)  
+2. [Core Concepts](#core-concepts)  
+3. [Why Fuzzy Logic?](#why-fuzzy-logic)  
+4. [Document Models and Identity](#document-models-and-identity)  
+5. [Query Syntax and Semantics](#query-syntax-and-semantics)  
+6. [Custom Predicates and Extensibility](#custom-predicates-and-extensibility)  
+7. [Flat Document Support](#flat-document-support)  
+8. [Homomorphism: Theory and Examples](#homomorphism-theory-and-examples)  
+9. [Evaluation and Post-Processing](#evaluation-and-post-processing)  
+10. [Examples](#examples)  
+11. [Applications and Use Cases](#applications-and-use-cases)  
+12. [Future Directions](#future-directions)  
+13. [References](#references)
 
 ---
 
-## Query Syntax
+## Introduction
 
-Queries are parsed into a list-based AST that is compatible with JSON for
-evaluation. Here’s an example query:
+Conventional search often treats queries and documents as sharply delineated: a document either matches the query or it does not. Real-world reasoning, however, is often more nuanced. **fuzzy-logic-search** introduces gradation, allowing documents to match queries to varying extents. This can be crucial when dealing with heterogeneous datasets, ambiguous search terms, or user queries that are not strictly binary.
 
-### Example Query
+---
+
+## Core Concepts
+
+1. **Fuzzy Sets**:  
+   A fuzzy set assigns to each element a membership value in [0, 1]. In **fuzzy-logic-search**, each document is assigned a degree of relevance to the query, reflecting partial matches rather than absolute inclusion or exclusion.
+
+2. **Fuzzy Operations**:  
+   Logical operators from Boolean logic (`and`, `or`, `not`) are extended using fuzzy logic. For instance:
+   - `and` → *minimum* of the membership scores,
+   - `or` → *maximum* of the membership scores,
+   - `not` → *1 minus* the membership score.
+
+3. **Linguistic Hedges (Modifiers)**:  
+   Terms like `very` and `somewhat` transform membership values. For example:
+   - `very Q` might square the DoM, emphasizing already-strong matches.
+   - `somewhat Q` might take a square root, broadening tolerance to partial matches.
+
+---
+
+## Why Fuzzy Logic?
+
+Fuzzy logic better models how humans interpret queries. Instead of forcing binary decisions, it allows for degrees of satisfaction. Benefits include:
+
+- **Graduated Transitions**: Smoothly vary between full match and no match, rather than abrupt cutoffs.
+- **Complex Queries**: Easily combine multiple conditions (e.g., `(and (field age (> 25)) (field name (contains "Smith")))`) and produce nuanced relevance scores.
+- **Interpretability and Flexibility**: Fuzzy sets can be interpreted directly as numeric scores or, if desired, mapped back to linguistic categories (like "very relevant") through optional defuzzification.
+
+---
+
+## Document Models and Identity
+
+**fuzzy-logic-search** supports two primary document types:
+
+1. **Structured JSON Documents**:  
+   Each JSON document may reside in its own file or be provided programmatically as a Python dictionary. Documents are identified by:
+   - **Filename**: If loading from a file, the filename serves as the document’s ID.
+   - **Hash**: If provided as a dictionary, a hash of the document is used as its ID.
+   - **Index**: If documents are provided in a list with no other identifiers, their list index is used.
+
+2. **Flat Documents (e.g., `.txt`, `.md`)**:  
+   When fields are not applicable, documents are treated as raw text. Queries default to fuzzy logic operations on content-based similarity (e.g., normalized TF-IDF scores), providing a DoM that represents how well the document’s text aligns with the query terms.
+
+---
+
+## Query Syntax and Semantics
+
+Queries are represented as abstract syntax trees (ASTs), enabling complex, composable logic. For example:
+
 ```lisp
 (and 
   (field x (== 1)) 
   (not (field y (startswith z))))
 ```
 
-### Parsed as AST
+This may parse to:
+
 ```json
 [
   "and",
@@ -77,144 +93,125 @@ evaluation. Here’s an example query:
 ]
 ```
 
-The JSON representation of the query is more convenient for storage, serialization, and evaluation.
-The representations are isomorphic, allowing easy conversion between the two
-representations.
-
-### Evaluation Process
-1. Each `field` accesses a specified part of the JSON document.
-2. Predicates like `==` or `startswith` evaluate fuzzy membership degrees for the field.
-3. Logical operators (`and`, `or`, `not`) and modifiers (`very`, `somewhat`) combine and transform these degrees.
+**Key Components**:
+- **field path**: Specifies where in a JSON document to look.
+- **predicates**: Such as `==`, `>`, `<`, `startswith`, or `contains`, yield a membership value.  
+- **logical operators**: `and`, `or`, `not` apply fuzzy logic to combine or modify conditions.
+- **modifiers**: `very`, `somewhat` and others can transform membership values.
 
 ---
 
-## Logical Framework
+## Custom Predicates and Extensibility
 
-The system is grounded in fuzzy logic, providing consistent and interpretable results:
+**fuzzy-logic-search** is fully extensible. Users can define their own predicates with custom membership logic. While default predicates often map to crisp Boolean tests (yielding 0.0 or 1.0), advanced users can integrate domain-specific scoring functions that return continuous values.
 
-1. **Fuzzy Queries**:
-   - Queries are fuzzy sets \( Q \), where \( Q(d) \in [0, 1] \) quantifies the degree to which a document \( d \) satisfies the query.
+For example, you can define a custom predicate `_similar(ob, doc)` that returns a continuous similarity measure (e.g., cosine similarity, Jaccard index, or a learned embedding distance) normalized to [0,1].
 
-2. **Fuzzy Results**:
-   - Applying \( Q \) to a document set \( D \) produces a result set \( R \), a fuzzy subset of \( D \):
-     \[
-     R = \{(d, Q(d)) \mid d \in D\}
-     \]
+Here is a snippet from the default predicate set (simplified):
 
-3. **Logical Operators**:
-   - Queries and results support fuzzy operations:
-     - `and`: \(\min(Q_1(d), Q_2(d))\)
-     - `or`: \(\max(Q_1(d), Q_2(d))\)
-     - `not`: \(1 - Q(d)\)
+```python
+def _contains(ob, doc, quant=all) -> float:
+    if isinstance(ob, list):
+        return float(quant(str(o) in str(doc) for o in ob))
+    else:
+        return float(str(ob) in str(doc))
+```
 
-4. **Modifiers**:
-   - `very`: Sharpens membership degrees, e.g., \((Q(d))^2\).
-   - `somewhat`: Broadens membership degrees, e.g., \(\sqrt{Q(d)}\).
-
-5. **Homomorphism**:
-   - Operations on queries propagate consistently to result sets:
-     \[
-     \Phi(Q_1 \text{ and } Q_2) = \Phi(Q_1) \cap \Phi(Q_2)
-     \]
-
-6. **Non-Invertibility**:
-   - While \( Q \to R \) is well-defined, \( R \to Q \) is not generally possible due to the loss of query structure in \( R \).
+This returns 1.0 if `doc` contains `ob`, and 0.0 otherwise. Users can replace this logic or add new predicates that compute partial matches, graded similarities, or probabilistic scores.
 
 ---
 
-## JSON Document Queries
+## Flat Document Support
 
-This system supports querying nested and structured JSON documents with field-level specificity. Examples:
-
-1. **Simple Field Query**
-   ```lisp
-   (field age (== 30))
-   ```
-   - Matches documents where the `age` field is approximately `30`.
-
-2. **Wildcard Field Query**
-   ```lisp
-   (field person.*.name (contains "John"))
-   ```
-   - Matches documents where any nested `name` field under `person` contains "John".
-
-3. **Compound Query**
-   ```lisp
-   (and
-     (field address.city (== "New York"))
-     (not (field age (< 25))))
-   ```
-   - Matches documents where the `address.city` field equals "New York" and `age` is not less than 25.
+For flat documents without structured fields, **fuzzy-logic-search** defaults to similarity-based measures. For instance, when you query `(contains "Smith")` over a `.txt` file, an internal TF-IDF-based scoring mechanism might produce a relevance score proportional to the frequency and distinctiveness of `"Smith"` in the document. Thus, even plain text searches benefit from fuzzy logic, capturing how "strongly" a document matches rather than requiring an exact condition.
 
 ---
 
-## Result Post-Processing
+## Homomorphism: Theory and Examples
 
-Result sets are fuzzy sets of documents. Post-processing allows dynamic adjustments:
+A notable mathematical property of this system is that the mapping from queries (`Q`) to result sets (`R`) is a **homomorphism**. This means:
 
-- **Combine Results**:
-  - Combine result sets logically: 
-    ```lisp
-    R = R1 and R2 or not R3
-    ```
+1. Operations on queries translate directly to operations on their corresponding fuzzy result sets.
+2. If you have queries `Q1` and `Q2`, and their corresponding result sets `R1` and `R2`, then:
+   \[
+   \Phi(Q1 \,\text{and}\, Q2) = \Phi(Q1) \,\text{and}\, \Phi(Q2) = R1 \cap R2
+   \]
+   where the `and` operation on results is applied element-wise to their membership values.
 
-- **Apply Modifiers**:
-  - Transform results dynamically:
-    ```lisp
-    R = very R1
-    ```
+**Example**:  
+- Suppose `Q1(d)` assigns a relevance of 0.8 to document `d`, and `Q2(d)` assigns 0.6.  
+- `Q1 and Q2` would assign `min(0.8, 0.6) = 0.6` to `d`.  
+- Likewise, the result sets `R1` and `R2` induced by `Q1` and `Q2` would yield a result `R = R1 and R2` that has the same minimal intersection membership.
 
-This flexibility makes the system ideal for dynamic query refinement and iterative exploration.
+This property ensures **consistency and predictability**: whether you combine fuzzy sets at the query level or at the result level, you arrive at the same final degrees of membership.
+
+**Non-Invertibility**:  
+While we can map `Q` to `R`, we cannot uniquely recover `Q` from `R`. Different queries may produce identical result sets, so the process is not invertible.
 
 ---
 
-## Example Workflow
+## Evaluation and Post-Processing
 
-### Query
+Evaluating a query `Q` over a document set `D` yields a fuzzy set `R`:
+\[
+R = \{(d, Q(d)) \mid d \in D \}
+\]
+
+Since both queries and results are fuzzy sets, you can post-process `R` using the same operations:
+- Apply logical operators to combine multiple result sets (`R = R1 and (not R2)`).
+- Use modifiers on results directly (`very R`), sharpening or broadening the final membership values without re-running the original queries.
+
+This flexible architecture encourages iterative refinement, experimentation, and dynamic adjustment of search results after the initial computation.
+
+---
+
+## Examples
+
+**Simple Structured Query**:
+```lisp
+(field age (> 25))
+```
+For a document `{"age": 30}`, this might yield a high membership (close to 1.0), while `{"age": 20}` might yield a lower membership (0.0 if crisp, or a partial score if using a graded comparison).
+
+**Compound Query**:
 ```lisp
 (and
-  (field age (> 25))
-  (field name (contains "Smith")))
+  (field address.city (== "New York"))
+  (not (field age (< 25))))
 ```
+This increases membership for documents whose `address.city` closely matches `"New York"` and whose `age` is not less than 25, combining these conditions fuzzily.
 
-### JSON Document
-```json
-{
-  "age": 30,
-  "name": "John Smith"
-}
+**Post-Processing**:
+If `R1` results from `Q1`, and `R2` from `Q2`, you can form a new result set:
+```lisp
+R = very (R1 or R2)
 ```
-
-### Result
-```json
-{
-  "id": "funny.json",
-  "relevance": 0.85
-}
-```
+This applies the `or` (max) operation at the result level and then the `very` modifier to emphasize top matches.
 
 ---
 
-## Applications
+## Applications and Use Cases
 
-1. **Search Engines**:
-   - Query structured data with fine-grained control and relevance ranking.
-2. **Recommendation Systems**:
-   - Combine fuzzy logic with user-defined preferences for personalized results.
-3. **Data Analysis**:
-   - Extract insights from JSON datasets with flexible, composable queries.
+- **Search Engines**: Instead of returning a binary match, yield graded results that reflect partial matches and relevance strength.
+- **Recommendation Systems**: Combine multiple user preference queries fuzzily, weighting attributes like price, popularity, and genre to produce a nuanced recommendation score.
+- **Data Analysis**: Query large JSON datasets or plain text corpora with flexible, human-like reasoning, enabling exploratory data analysis and gradual refinement of search criteria.
 
 ---
 
-## Advantages
+## Future Directions
 
-- **Expressive Queries**:
-  - Support for modifiers, wildcards, and hierarchical fields.
-- **Flexible Identity System**:
-  - Supports filenames, hashes, or list indices to uniquely identify documents.
-- **Dynamic Refinement**:
-  - Post-process results without re-evaluating queries.
+1. **Adaptive Defuzzification**: Map membership scores back to linguistic categories (e.g., "highly relevant", "mildly relevant") for user-facing explanations.
+2. **Advanced Similarity Measures**: Integrate vector-based semantic similarity or machine learning–derived embeddings to produce more meaningful fuzzy matches.
+3. **Performance and Indexing**: Scale to larger datasets with indexing and caching strategies, ensuring efficiency without compromising fuzzy logic principles.
 
 ---
 
-This system is a robust application of fuzzy logic principles to structured data querying, ensuring flexibility and consistency across diverse data formats and use cases.
+## References
+
+- Zadeh, L. A. (1965). *Fuzzy sets.* Information and Control, 8(3), 338–353.
+- Klir, G. J., & Yuan, B. (1995). *Fuzzy sets and fuzzy logic: theory and applications.* Prentice Hall.
+- Zimmermann, H.-J. (1996). *Fuzzy set theory—and its applications.* Springer.
+
+---
+
+**fuzzy-logic-search** offers a unified, theory-driven approach to querying documents—both structured and unstructured—through the lens of fuzzy logic. It encourages a more nuanced view of relevance, supports extensibility through custom predicates, and maintains a homomorphism between queries and their result sets. Ultimately, it stands as both a pedagogical tool and a practical system for modern information retrieval scenarios.
