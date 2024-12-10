@@ -1,306 +1,220 @@
-# Boolean and Fuzzy Boolean Query Framework
 
-NOTE: Very early stage. I  have also implemented fuzzy queries on JSON documents, allowing you to specify field paths, and various predicates on field paths
-(including paths with wildcards). It should have minimal dependencies and work without
-building a database (the raw files will be the representation of the database). All queries are JSON already, so it should be easy to integrate it in web APIs.
-The documentation is out of date.
+# Fuzzy Logic Search
 
+A flexible and expressive system for querying structured JSON documents using
+fuzzy logic principles. This system enables users to construct complex queries
+that return fuzzy sets of results, capturing the degree of relevance of each
+document to the query.
 
-A flexible Python framework for constructing, combining, and evaluating Boolean and Fuzzy Boolean queries against a collection of documents. This framework supports both strict binary evaluations and degrees-of-membership evaluations, laying the groundwork for advanced fuzzy set-theoretic query capabilities.
+> We also support flat files. In this case, a compelling degree of relevance 
+> score is something like a normalized `tf-idf` score on matching keywords in the
+> query and the document. You could still use something like a levenshtein
+> distance insetad, but it would likely not satisfy the information retrieval
+> principles as well as `tf-idf` would.
 
-## Table of Contents
-
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-  - [Boolean Queries](#boolean-queries)
-  - [Fuzzy Boolean Queries](#fuzzy-boolean-queries)
-- [API Documentation](#api-documentation)
-  - [BooleanQuery](#booleanquery)
-  - [FuzzyBooleanQuery](#fuzzybooleanquery)
-  - [ResultQuery](#resultquery)
-- [Formal Theory](#formal-theory)
-- [Future Enhancements](#future-enhancements)
-- [Contributing](#contributing)
-- [License](#license)
+---
 
 ## Features
 
-- **Boolean Query Construction**: Create complex Boolean queries using `AND`, `OR`, and `NOT` operations.
-- **Fuzzy Boolean Query Construction**: Extend Boolean queries with fuzzy logic operations and modifiers like `very` and `somewhat`.
-- **Operator Overloading**: Combine queries intuitively using Python's bitwise operators (`&`, `|`, `~`).
-- **Unified Evaluation Results**: Utilize a single `ResultQuery` class to handle both Boolean and Fuzzy Boolean query evaluations.
-- **TF-IDF Integration**: Utilize Term Frequency-Inverse Document Frequency (TF-IDF) for sophisticated scoring in fuzzy queries.
-- **Extensible Design**: Easily extend the framework with additional modifiers or integrate more complex scoring mechanisms.
+- **Fuzzy Querying**: 
+  - Construct queries using logical operators (`and`, `or`, `not`), modifiers (`very`, `somewhat`), and comparison predicates (`==`, `contains`, `startswith`, etc.).
+  - Queries are expressed as structured abstract syntax trees (ASTs) for modularity and extensibility.
+- **Structured Document Support**:
+  - Operates on JSON documents stored as separate files in directories or provided as direct dictionary inputs.
+- **Dual Fuzzy Representation**:
+  - Queries are fuzzy sets, representing the degree of relevance of all documents.
+  - Results are fuzzy sets, associating documents with degrees of membership (relevance).
+- **Homomorphic Operations**:
+  - Logical and modifier operations applied to queries propagate to result sets consistently.
+- **Post-Processing Flexibility**:
+  - Modify result sets dynamically with operations like `very`, `not`, or logical combinations.
 
-## Installation
+---
 
-Ensure you have Python 3.7 or higher installed.
+## Document Identity System
 
-Clone the repository:
-
-```bash
-git clone https://github.com/queelius/algebraic_search.git
-cd algebraic_search
+### **1. File-Based Documents**
+If documents are stored as separate JSON files, their **filename** serves as their unique identifier:
+```json
+{ "id": "funny.json", "relevance": 0.85 }
 ```
 
-## Usage
+### **2. Hash-Based Identity**
+If a JSON document is directly provided as a Python dictionary (e.g., via an API call), the system computes its **hash** to ensure a unique identity:
+```json
+{ "id": "abc123hash", "relevance": 0.85 }
+```
 
-### Boolean Queries
+### **3. Index-Based Identity**
+In cases where documents are part of a list or batch with no explicit filenames or hashes, the **list index** serves as the identity:
+```json
+[ ..., 0.85, ... ]
+```
+- Example result: \( \{ "id": 5, "relevance": 0.85 \} \), where `id = 5` refers to the document’s position in the input list.
 
-Create and evaluate strict Boolean queries to determine document matches based on term presence.
+This flexible identity system ensures robust tracking of documents regardless of their source or storage format.
 
-```python
-from boolean_query import BooleanQuery, ResultQuery
+---
 
-# Initialize BooleanQuery instances
-q1 = BooleanQuery("cat dog") # same as BooleanQuery("(and cat dog)")
-q2 = BooleanQuery("(or fish bird)")
-q3 = ~q2
-q4 = q1 & q3  # Represents "(and (and cat dog) (not (or fish bird)))"
+## Query Syntax
 
-# Example documents as sets
-documents = [
-    {"cat", "dog"},
-    {"fish"},
-    {"bird"},
-    {"cat", "dog", "fish"},
-    {"cat", "dog", "bird"},
-    {"cat"},
-    {"dog"},
-    {"fish", "bird"},
-    {"cat", "dog", "fish", "bird"},
+Queries are parsed into a list-based AST that is compatible with JSON for
+evaluation. Here’s an example query:
+
+### Example Query
+```lisp
+(and 
+  (field x (== 1)) 
+  (not (field y (startswith z))))
+```
+
+### Parsed as AST
+```json
+[
+  "and",
+  ["field", "x", ["==", 1]],
+  ["not", ["field", "y", ["startswith", "z"]]]
 ]
-
-# Evaluate queries against documents
-results = q4.eval(documents)
-print(q4)
-# Output: (and (and cat dog) (not (or fish bird)))
-print(results)
-# Output: ResultQuery([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 ```
 
-### Fuzzy Boolean Queries
+The JSON representation of the query is more convenient for storage, serialization, and evaluation.
+The representations are isomorphic, allowing easy conversion between the two
+representations.
 
-Construct and evaluate fuzzy Boolean queries that consider degrees of term relevance using TF-IDF scores.
+### Evaluation Process
+1. Each `field` accesses a specified part of the JSON document.
+2. Predicates like `==` or `startswith` evaluate fuzzy membership degrees for the field.
+3. Logical operators (`and`, `or`, `not`) and modifiers (`very`, `somewhat`) combine and transform these degrees.
 
-```python
-from fuzzy_boolean_query import FuzzyBooleanQuery, ResultQuery
+---
 
-# Sample documents
-documents_text = [
-    "cat dog",
-    "fish",
-    "bird",
-    "cat dog fish",
-    "cat dog bird",
-    "cat",
-    "dog",
-    "fish bird",
-    "cat dog fish bird",
-]
+## Logical Framework
 
-# Compute TF-IDF scores
-tfidf_scores, vocabulary = FuzzyBooleanQuery.compute_tfidf(documents_text)
+The system is grounded in fuzzy logic, providing consistent and interpretable results:
 
-# Initialize FuzzyBooleanQuery with TF-IDF data
-q1_fuzzy = FuzzyBooleanQuery("cat dog", tfidf_matrix=tfidf_scores, vocabulary=vocabulary)
-q2_fuzzy = FuzzyBooleanQuery("(or fish bird)", tfidf_matrix=tfidf_scores, vocabulary=vocabulary)
-q3_fuzzy = ~q2_fuzzy
-q4_fuzzy = q1_fuzzy & q3_fuzzy  # Represents "(and (and cat dog) (not (or fish bird)))"
+1. **Fuzzy Queries**:
+   - Queries are fuzzy sets \( Q \), where \( Q(d) \in [0, 1] \) quantifies the degree to which a document \( d \) satisfies the query.
 
-# Evaluate queries against documents
-results = q4_fuzzy.eval(documents_text)
-print(q4_fuzzy) # Output: (and (and cat dog) (not (or fish bird)))
-print(results)  # Output: ResultQuery([...]) with float scores
-```
+2. **Fuzzy Results**:
+   - Applying \( Q \) to a document set \( D \) produces a result set \( R \), a fuzzy subset of \( D \):
+     \[
+     R = \{(d, Q(d)) \mid d \in D\}
+     \]
 
-## API Documentation
+3. **Logical Operators**:
+   - Queries and results support fuzzy operations:
+     - `and`: \(\min(Q_1(d), Q_2(d))\)
+     - `or`: \(\max(Q_1(d), Q_2(d))\)
+     - `not`: \(1 - Q(d)\)
 
-### BooleanQuery
+4. **Modifiers**:
+   - `very`: Sharpens membership degrees, e.g., \((Q(d))^2\).
+   - `somewhat`: Broadens membership degrees, e.g., \(\sqrt{Q(d)}\).
 
-A class for constructing and evaluating strict Boolean queries.
+5. **Homomorphism**:
+   - Operations on queries propagate consistently to result sets:
+     \[
+     \Phi(Q_1 \text{ and } Q_2) = \Phi(Q_1) \cap \Phi(Q_2)
+     \]
 
-#### Initialization
+6. **Non-Invertibility**:
+   - While \( Q \to R \) is well-defined, \( R \to Q \) is not generally possible due to the loss of query structure in \( R \).
 
-```python
-BooleanQuery(query: Union[str, List] = None)
-```
+---
 
-- `query`: A query string (e.g., `"cat dog"`, `"(or fish bird)"`) or a list of tokens. Defaults to an empty query.
+## JSON Document Queries
 
-#### Methods
+This system supports querying nested and structured JSON documents with field-level specificity. Examples:
 
-- `tokenize(query: str) -> List`: Parses the query string into a nested list structure.
-- `eval(docs: Union[List[Set[str]], Set[str]]) -> ResultQuery`: Evaluates the query against a list of documents.
-- Operator Overloads:
-  - `&`: Logical AND
-  - `|`: Logical OR
-  - `~`: Logical NOT
-
-#### Example
-
-```python
-q = BooleanQuery("(and cat dog)")
-result = q.eval([{"cat", "dog"}, {"cat"}, {"dog"}, {"cat", "dog"}])
-print(result)  # ResultQuery([1.0, 0.0, 0.0, 1.0])
-```
-
-### FuzzyBooleanQuery
-
-A class for constructing and evaluating fuzzy Boolean queries with degrees of membership.
-
-#### Initialization
-
-```python
-FuzzyBooleanQuery(query: Union[str, List])
-```
-
-- `query`: A query string or list of tokens.
-
-#### Methods
-
-- `tokenize(query: str) -> List`: Parses the query string into a nested list structure, recognizing fuzzy modifiers.
-- `eval(docs: List[str], ranker: Callable) -> ResultQuery`: Evaluates the fuzzy query against a list of documents using some ranker, like a normalized TF-IDF score.
-- Operator Overloads:
-  - `&`: Logical AND (fuzzy)
-  - `|`: Logical OR (fuzzy)
-  - `~`: Logical NOT (fuzzy)
-
-#### Example
-
-```python
-q_fuzzy = FuzzyBooleanQuery("cat dog")
-result_fuzzy = q_fuzzy.eval(docs, ranker=lambda term, doc: 1.0 if term in doc else 0.0)
-print(result_fuzzy)  # ResultQuery([...])
-```
-
-### ResultQuery
-
-Represents the results of evaluating both `BooleanQuery` and `FuzzyBooleanQuery`.
-
-#### Attributes
-
-- `scores`: A list of floats (`0.0` or `1.0` for Boolean queries, `0.0` to `1.0` for Fuzzy Boolean queries) indicating the degree of membership for each document.
-
-#### Methods
-
-- Operator Overloads:
-  - `&`: Element-wise minimum
-  - `|`: Element-wise maximum
-  - `~`: Element-wise complement
-
-#### Example
-
-```python
-r1 = ResultQuery([1.0, 0.0, 1.0])
-r2 = ResultQuery([0.5, 1.0, 0.0])  # For BooleanQuery, these should be 0.0 or 1.0
-combined = r1 & r2  # ResultQuery([0.5, 0.0, 0.0])
-```
-
-*Note*: In `BooleanQuery`, scores should be strictly `0.0` or `1.0`. For `FuzzyBooleanQuery`, scores range between `0.0` and `1.0`.
-
-## Formal Theory
-
-### Boolean Algebra for Queries and Results
-
-#### Query Algebra (`Q`)
-
-- **Elements**: `Q = P(T*)` where `T*` is the set of all finite strings composed of ASCII characters. `P(T*)` is the power set of `T*`.
-- **Operations**:
-  - **AND (`&`)**: Intersection of two subsets.
-  - **OR (`|`)**: Union of two subsets.
-  - **NOT (`~`)**: Complement of a subset relative to `T*`.
-- **Constants**:
-  - **Empty Set (`{}`)**: Matches no documents.
-  - **Universal Set (`T*`)**: Matches all documents.
-
-#### Result Algebra (`R`)
-
-- **Elements**: `R = [r_1, r_2, ..., r_n]` where each `r_i` ∈ {0.0, 1.0} for Boolean queries or `r_i` ∈ [0.0, 1.0] for Fuzzy Boolean queries.
-- **Operations**:
-  - **AND (`&`)**: Element-wise minimum.
-  - **OR (`|`)**: Element-wise maximum.
-  - **NOT (`~`)**: Element-wise complement (`1.0 - r_i`).
-
-#### Homomorphism
-
-The evaluation functions `BooleanQuery.eval` and `FuzzyBooleanQuery.eval` serve as homomorphisms `φ: Q → R` and `φ_f: Q_f → R_f`, preserving the algebraic structure:
-
-- `φ(Q1 & Q2) = φ(Q1) & φ(Q2)`
-- `φ(Q1 | Q2) = φ(Q1) | φ(Q2)`
-- `φ(~Q1) = ~φ(Q1)`
-- Similarly for fuzzy queries.
-
-### Fuzzy Boolean Algebra for Queries and Results
-
-#### Fuzzy Query Algebra (`Q_f`)
-
-- **Elements**: `Q_f = P(T*)` similar to Boolean queries.
-- **Operations**:
-  - **AND (`&`)**: Fuzzy intersection using minimum.
-  - **OR (`|`)**: Fuzzy union using maximum.
-  - **NOT (`~`)**: Fuzzy complement (`1.0 - x`).
-  - **Modifiers**: Such as `very`, `somewhat`, etc., to adjust degrees of membership.
-
-#### Fuzzy Result Algebra (`R_f`)
-
-- **Elements**: `R_f = [r_1, r_2, ..., r_n]` where each `r_i` ∈ [0.0, 1.0].
-- **Operations**:
-  - **AND (`&`)**: Element-wise minimum.
-  - **OR (`|`)**: Element-wise maximum.
-  - **NOT (`~`)**: Element-wise complement (`1.0 - r_i`).
-
-#### Homomorphism
-
-The evaluation function `eval` in both `BooleanQuery` and `FuzzyBooleanQuery` acts as a homomorphism `φ: Q → R` and `φ_f: Q_f → R_f`, preserving:
-
-- **Preservation of Operations**:
-  - `φ(Q1 & Q2) = φ(Q1) & φ(Q2)`
-  - `φ(Q1 | Q2) = φ(Q1) | φ(Q2)`
-  - `φ(~Q1) = ~φ(Q1)`
-- **Preservation of Modifiers**:
-  - `φ_f(very Q) = very φ_f(Q)`
-  - `φ_f(somewhat Q) = somewhat φ_f(Q)`
-
-This ensures that the logical and fuzzy structures of queries are faithfully represented in the evaluation results.
-
-## Future Enhancements
-
-- **Advanced Fuzzy Operators**: Incorporate more sophisticated fuzzy logic operators and modifiers.
-- **Custom Scoring Mechanisms**: Implement alternative scoring strategies beyond TF-IDF, such as BM25.
-- **Caching and Optimization**: Optimize performance for large document collections through caching and efficient data structures.
-- **Extended Query Language**: Support more complex query constructs and natural language processing features.
-- **Integration with Databases and Search Engines**: Facilitate seamless integration with existing data storage and retrieval systems.
-
-## Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. **Fork the Repository**: Click the "Fork" button on the repository page.
-2. **Clone Your Fork**:
-   ```bash
-   git clone https://github.com/queelius/algebraic_search.git
-   cd algebraic_search
+1. **Simple Field Query**
+   ```lisp
+   (field age (== 30))
    ```
-3. **Create a New Branch**:
-   ```bash
-   git checkout -b feature/YourFeatureName
+   - Matches documents where the `age` field is approximately `30`.
+
+2. **Wildcard Field Query**
+   ```lisp
+   (field person.*.name (contains "John"))
    ```
-4. **Make Your Changes**: Implement your feature or bug fix.
-5. **Commit Your Changes**:
-   ```bash
-   git commit -m "Add your detailed commit message"
+   - Matches documents where any nested `name` field under `person` contains "John".
+
+3. **Compound Query**
+   ```lisp
+   (and
+     (field address.city (== "New York"))
+     (not (field age (< 25))))
    ```
-6. **Push to Your Fork**:
-   ```bash
-   git push origin feature/YourFeatureName
-   ```
-7. **Create a Pull Request**: Navigate to the original repository and click "Compare & pull request."
+   - Matches documents where the `address.city` field equals "New York" and `age` is not less than 25.
 
-Please ensure that your code adheres to the existing style and includes relevant tests.
+---
 
-## License
+## Result Post-Processing
 
-This project is licensed under the [MIT License](LICENSE).
+Result sets are fuzzy sets of documents. Post-processing allows dynamic adjustments:
 
+- **Combine Results**:
+  - Combine result sets logically: 
+    ```lisp
+    R = R1 and R2 or not R3
+    ```
+
+- **Apply Modifiers**:
+  - Transform results dynamically:
+    ```lisp
+    R = very R1
+    ```
+
+This flexibility makes the system ideal for dynamic query refinement and iterative exploration.
+
+---
+
+## Example Workflow
+
+### Query
+```lisp
+(and
+  (field age (> 25))
+  (field name (contains "Smith")))
+```
+
+### JSON Document
+```json
+{
+  "age": 30,
+  "name": "John Smith"
+}
+```
+
+### Result
+```json
+{
+  "id": "funny.json",
+  "relevance": 0.85
+}
+```
+
+---
+
+## Applications
+
+1. **Search Engines**:
+   - Query structured data with fine-grained control and relevance ranking.
+2. **Recommendation Systems**:
+   - Combine fuzzy logic with user-defined preferences for personalized results.
+3. **Data Analysis**:
+   - Extract insights from JSON datasets with flexible, composable queries.
+
+---
+
+## Advantages
+
+- **Expressive Queries**:
+  - Support for modifiers, wildcards, and hierarchical fields.
+- **Flexible Identity System**:
+  - Supports filenames, hashes, or list indices to uniquely identify documents.
+- **Dynamic Refinement**:
+  - Post-process results without re-evaluating queries.
+
+---
+
+This system is a robust application of fuzzy logic principles to structured data querying, ensuring flexibility and consistency across diverse data formats and use cases.
