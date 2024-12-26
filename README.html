@@ -68,6 +68,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="README_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="README_files/libs/bootstrap/bootstrap-6557ce804185a42b51bfe31343ca79d9.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -80,54 +109,56 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<p>Below is an updated <code>README.md</code> that incorporates your additional points about custom predicates, flat documents, TF-IDF scoring, and a more detailed discussion of the homomorphism, including examples. This version aims to maintain an academic and pedagogical tone while providing concrete information for practitioners.</p>
-<hr>
-<section id="fuzzy-logic-search" class="level1">
-<h1>fuzzy-logic-search</h1>
-<p><strong>fuzzy-logic-search</strong> is an academic and practical framework for querying structured and unstructured documents using fuzzy logic principles. Unlike traditional Boolean search techniques that yield a binary match or non-match, <strong>fuzzy-logic-search</strong> produces a continuous score in the range [0, 1], indicating the <em>degree-of-membership (DoM)</em>—or relevance—of each document to the given query.</p>
-<p>This system supports queries on both structured JSON documents and flat text files, offering a uniform fuzzy logic interface to a variety of data sources. Users can compose queries using logical operators, quantifiers, modifiers, and custom predicates that return continuous or crisp DoM values, enabling rich, human-centric querying.</p>
-<hr>
+<section id="fuzzy-logic-search-fls" class="level1">
+<h1>fuzzy-logic-search (<code>fls</code>)</h1>
+<p><code>fls</code> is an academic and practical framework for querying structured documents (JSON objects) using fuzzy logic principles. Unlike traditional Boolean search techniques that yield a binary relevant or non-relevant class label, <code>fls</code> produces a score in the range <code>[0, 1]</code>, indicating the <em>degree-of-membership</em> (DoM) that each document has with respect to a given query. The query itself defines a fuzzy set, and the documents are evaluated based on their overlap with this set.</p>
+<p>This system supports queries on structured JSON documents, offering a uniform fuzzy logic interface to a variety of data sources. Users can compose queries using logical operators, quantifiers, modifiers, and custom predicates that return continuous or crisp DoM values, enabling rich, human-centric querying.</p>
+<blockquote class="blockquote">
+<p>NOTE: If you have flat text documents (e.g., <code>.txt</code>, <code>.md</code>), <code>fls</code> can still process them by treating them as a a single JSON <code>value</code> of type <code>string</code>, although the power of the <code>path</code> (to be discussed later) will not be available to define more complex fuzzy queries.</p>
+</blockquote>
 <section id="table-of-contents" class="level2">
 <h2 class="anchored" data-anchor-id="table-of-contents">Table of Contents</h2>
-<ol type="1">
-<li><a href="#introduction">Introduction</a><br>
-</li>
-<li><a href="#core-concepts">Core Concepts</a><br>
-</li>
-<li><a href="#why-fuzzy-logic">Why Fuzzy Logic?</a><br>
-</li>
-<li><a href="#document-models-and-identity">Document Models and Identity</a><br>
-</li>
-<li><a href="#query-syntax-and-semantics">Query Syntax and Semantics</a><br>
-</li>
-<li><a href="#custom-predicates-and-extensibility">Custom Predicates and Extensibility</a><br>
-</li>
-<li><a href="#flat-document-support">Flat Document Support</a><br>
-</li>
-<li><a href="#homomorphism-theory-and-examples">Homomorphism: Theory and Examples</a><br>
-</li>
-<li><a href="#evaluation-and-post-processing">Evaluation and Post-Processing</a><br>
-</li>
-<li><a href="#examples">Examples</a><br>
-</li>
-<li><a href="#applications-and-use-cases">Applications and Use Cases</a><br>
-</li>
-<li><a href="#future-directions">Future Directions</a><br>
-</li>
+<ul>
+<li><a href="#fuzzy-logic-search-fls">fuzzy-logic-search (<code>fls</code>)</a>
+<ul>
+<li><a href="#table-of-contents">Table of Contents</a></li>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#core-concepts">Core Concepts</a></li>
+<li><a href="#why-fuzzy-logic">Why Fuzzy Logic?</a></li>
+<li><a href="#document-models-and-identity">Document Models and Identity</a></li>
+<li><a href="#query-syntax-and-semantics">Query Syntax and Semantics</a></li>
+<li><a href="#relevance-scoring">Relevance Scoring</a></li>
+<li><a href="#default-fuzzy-predicates">Default Fuzzy Predicates</a>
+<ul>
+<li><a href="#default-fuzzy-membership-functions">Default Fuzzy Membership Functions</a>
+<ul>
+<li><a href="#triangular-membership-function-for-numeric-equality">Triangular Membership Function for Numeric Equality</a></li>
+<li><a href="#triangular-membership-function-for-numeric-inequality">Triangular Membership Function for Numeric Inequality</a></li>
+<li><a href="#levenshtein-distance-based-membership-function-for-string-equality--s_1--s_2-">Levenshtein Distance-Based Membership Function for String Equality (( s_1 = s_2 ))</a></li>
+</ul></li>
+<li><a href="#customization-and-extensibility">Customization and Extensibility</a></li>
+<li><a href="#supported-fuzzy-predicates">Supported Fuzzy Predicates</a></li>
+<li><a href="#sub-queries-and-json-path-integration">Sub-Queries and JSON Path Integration</a></li>
+</ul></li>
+<li><a href="#homomorphism-theory-and-examples">Homomorphism: Theory and Examples</a></li>
+<li><a href="#evaluation-and-post-processing">Evaluation and Post-Processing</a></li>
+<li><a href="#examples">Examples</a></li>
+<li><a href="#applications-and-use-cases">Applications and Use Cases</a></li>
+<li><a href="#future-directions">Future Directions</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
 <li><a href="#references">References</a></li>
-</ol>
-<hr>
+</ul></li>
+</ul>
 </section>
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
-<p>Conventional search often treats queries and documents as sharply delineated: a document either matches the query or it does not. Real-world reasoning, however, is often more nuanced. <strong>fuzzy-logic-search</strong> introduces gradation, allowing documents to match queries to varying extents. This can be crucial when dealing with heterogeneous datasets, ambiguous search terms, or user queries that are not strictly binary.</p>
-<hr>
+<p>Conventional search often treats queries and documents as sharply delineated: a document either matches the query or it does not. Real-world reasoning, however, is often more nuanced. <code>fls</code> introduces gradation, allowing documents to match queries to varying extents. This can be salient when dealing with heterogeneous datasets (a collection of JSON documents with a non-uniform structure), ambiguous search terms, or information needs that are not easily captured by crisp logic.</p>
 </section>
 <section id="core-concepts" class="level2">
 <h2 class="anchored" data-anchor-id="core-concepts">Core Concepts</h2>
-<ol type="1">
+<ul>
 <li><p><strong>Fuzzy Sets</strong>:<br>
-A fuzzy set assigns to each element a membership value in [0, 1]. In <strong>fuzzy-logic-search</strong>, each document is assigned a degree of relevance to the query, reflecting partial matches rather than absolute inclusion or exclusion.</p></li>
+A fuzzy set assigns to each element a membership value in [0, 1]. In <code>fls</code>, each document is assigned a degree of relevance to the query, reflecting partial matches rather than absolute inclusion or exclusion.</p></li>
 <li><p><strong>Fuzzy Operations</strong>:<br>
 Logical operators from Boolean logic (<code>and</code>, <code>or</code>, <code>not</code>) are extended using fuzzy logic. For instance:</p>
 <ul>
@@ -141,106 +172,231 @@ Terms like <code>very</code> and <code>somewhat</code> transform membership valu
 <li><code>very Q</code> might square the DoM, emphasizing already-strong matches.</li>
 <li><code>somewhat Q</code> might take a square root, broadening tolerance to partial matches.</li>
 </ul></li>
-</ol>
-<hr>
+</ul>
 </section>
 <section id="why-fuzzy-logic" class="level2">
 <h2 class="anchored" data-anchor-id="why-fuzzy-logic">Why Fuzzy Logic?</h2>
 <p>Fuzzy logic better models how humans interpret queries. Instead of forcing binary decisions, it allows for degrees of satisfaction. Benefits include:</p>
 <ul>
 <li><strong>Graduated Transitions</strong>: Smoothly vary between full match and no match, rather than abrupt cutoffs.</li>
-<li><strong>Complex Queries</strong>: Easily combine multiple conditions (e.g., <code>(and (field age (&gt; 25)) (field name (contains "Smith")))</code>) and produce nuanced relevance scores.</li>
+<li><strong>Complex Queries</strong>: Easily combine multiple conditions (e.g., <code>(or (&gt; :age 25) (in? "smith" (lower-case :name))</code>) and produce nuanced relevance scores.</li>
 <li><strong>Interpretability and Flexibility</strong>: Fuzzy sets can be interpreted directly as numeric scores or, if desired, mapped back to linguistic categories (like “very relevant”) through optional defuzzification.</li>
 </ul>
-<hr>
 </section>
 <section id="document-models-and-identity" class="level2">
 <h2 class="anchored" data-anchor-id="document-models-and-identity">Document Models and Identity</h2>
-<p><strong>fuzzy-logic-search</strong> supports two primary document types:</p>
-<ol type="1">
-<li><strong>Structured JSON Documents</strong>:<br>
-Each JSON document may reside in its own file or be provided programmatically as a Python dictionary. Documents are identified by:
+<p>In <code>fls</code>, documents are represented as structured JSON objects. This choice offers a flexible and intuitive way to model complex data, enabling rich queries that leverage the hierarchical nature of JSON. Each JSON document may reside in its own file or be provided programmatically as a Python dictionary. Documents are identified by:</p>
 <ul>
 <li><strong>Filename</strong>: If loading from a file, the filename serves as the document’s ID.</li>
-<li><strong>Hash</strong>: If provided as a dictionary, a hash of the document is used as its ID.</li>
-<li><strong>Index</strong>: If documents are provided in a list with no other identifiers, their list index is used.</li>
-</ul></li>
-<li><strong>Flat Documents (e.g., <code>.txt</code>, <code>.md</code>)</strong>:<br>
-When fields are not applicable, documents are treated as raw text. Queries default to fuzzy logic operations on content-based similarity (e.g., normalized TF-IDF scores), providing a DoM that represents how well the document’s text aligns with the query terms.</li>
-</ol>
-<hr>
+<li><strong>Key</strong>: If a dictionary is provided, the key is used as the document ID.</li>
+<li><strong>Index</strong>: If an array of documents is provided, the index is used as the document ID. This also works when loading a list of files (e.g., the sorted list of filenames in a directory).</li>
+<li><strong>Hash</strong>: Each document may also be identified by its hash, although duplicate documents that only differ by filename or key will be treated as identical.</li>
+<li><strong>Custom ID</strong>: Users can specify a custom ID function of type <code>(JSON, **kwargs) -&gt; string</code>, where <code>**kwargs</code> are additional arguments passed to the ID functionm, like the filename or key.</li>
+</ul>
+<p>This flexible identity system allows for seamless integration with various data sources, enabling users to query documents based on their unique identifiers.</p>
 </section>
 <section id="query-syntax-and-semantics" class="level2">
 <h2 class="anchored" data-anchor-id="query-syntax-and-semantics">Query Syntax and Semantics</h2>
 <p>Queries are represented as abstract syntax trees (ASTs), enabling complex, composable logic. For example:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode lisp code-with-copy"><code class="sourceCode commonlisp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">and</span> </span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  (field x (== <span class="dv">1</span>)) </span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  (<span class="kw">not</span> (field y (startswith z))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode lisp code-with-copy"><code class="sourceCode commonlisp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>(very (<span class="kw">and</span> </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  (somewhat (== (:asset.amount) <span class="dv">1</span>) )</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  (very (<span class="kw">not</span> (starts-with? <span class="bu">:name</span> z)))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>This may parse to:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"and"</span><span class="ot">,</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="ot">[</span><span class="st">"field"</span><span class="ot">,</span> <span class="st">"x"</span><span class="ot">,</span> <span class="ot">[</span><span class="st">"=="</span><span class="ot">,</span> <span class="dv">1</span><span class="ot">]],</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="ot">[</span><span class="st">"not"</span><span class="ot">,</span> <span class="ot">[</span><span class="st">"field"</span><span class="ot">,</span> <span class="st">"y"</span><span class="ot">,</span> <span class="ot">[</span><span class="st">"startswith"</span><span class="ot">,</span> <span class="st">"z"</span><span class="ot">]]]</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ot">]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p><strong>Key Components</strong>: - <strong>field path</strong>: Specifies where in a JSON document to look. - <strong>predicates</strong>: Such as <code>==</code>, <code>&gt;</code>, <code>&lt;</code>, <code>startswith</code>, or <code>contains</code>, yield a membership value.<br>
-- <strong>logical operators</strong>: <code>and</code>, <code>or</code>, <code>not</code> apply fuzzy logic to combine or modify conditions. - <strong>modifiers</strong>: <code>very</code>, <code>somewhat</code> and others can transform membership values.</p>
-<hr>
+<div class="sourceCode" id="cb2"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span> <span class="st">"very"</span><span class="ot">,</span> </span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>   <span class="ot">[</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>      <span class="st">"and"</span><span class="ot">,</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>         <span class="ot">[</span><span class="st">"somewhat"</span><span class="ot">,</span> <span class="ot">[</span><span class="st">"=="</span><span class="ot">,</span> <span class="ot">[</span><span class="st">"path"</span><span class="ot">,</span> <span class="st">"asset.amount"</span><span class="ot">],</span> <span class="dv">1</span><span class="ot">]],</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>         <span class="ot">[</span><span class="st">"very"</span><span class="ot">,</span> <span class="ot">[</span><span class="st">"not"</span><span class="ot">,</span> <span class="ot">[</span><span class="st">"starts-with?"</span><span class="ot">,</span> <span class="ot">[</span><span class="st">"path"</span><span class="ot">,</span> <span class="st">"name"</span><span class="ot">],</span> <span class="st">"z"</span><span class="ot">]]]</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>   <span class="ot">]</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="ot">]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><strong>Key Components</strong>:</p>
+<ul>
+<li><strong>field path</strong>: Specifies where in a JSON document to look.</li>
+<li><strong>predicates</strong>: Such as <code>==</code>, <code>&gt;</code>, <code>&lt;</code>, <code>starts-with?</code>, or <code>in?</code> yield a membership value.<br>
+</li>
+<li><strong>logical operators</strong>: <code>and</code>, <code>or</code>, <code>not</code> apply fuzzy logic to combine or modify membership values based on membership values of subqueries. We may also view <code>and</code> and <code>or</code> as quantifiers, akin to “for all” and “there exists” (or any).</li>
+<li><strong>modifiers</strong>: <code>very</code>, <code>somewhat</code> and other modifiers map membership values to new membership values (within [0, 1]).</li>
+<li><strong>general functions</strong>: <code>lower-case</code>, <code>length</code>, <code>word-count</code>, <code>sum</code>, <code>mean</code>, <code>max</code>, <code>min</code>, <code>concat</code>, <code>unique</code>, <code>sort</code>, and more can be used to transform values before applying predicates.</li>
+</ul>
+<blockquote class="blockquote">
+<p>Note: The inclusion of general functions also allows for non-fuzzy operations, such as filtering, mapping, and reducing lists. This is also a valid use case for <code>fls</code>, but it is not the primary focus of the package as it does not return a fuzzy set, but a list of values corresponding to each document.</p>
+</blockquote>
 </section>
-<section id="custom-predicates-and-extensibility" class="level2">
-<h2 class="anchored" data-anchor-id="custom-predicates-and-extensibility">Custom Predicates and Extensibility</h2>
-<p><strong>fuzzy-logic-search</strong> is fully extensible. Users can define their own predicates with custom membership logic. While default predicates often map to crisp Boolean tests (yielding 0.0 or 1.0), advanced users can integrate domain-specific scoring functions that return continuous values.</p>
-<p>For example, you can define a custom predicate <code>_similar(ob, doc)</code> that returns a continuous similarity measure (e.g., cosine similarity, Jaccard index, or a learned embedding distance) normalized to [0,1].</p>
-<p>Here is a snippet from the default predicate set (simplified):</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _contains(ob, doc, quant<span class="op">=</span><span class="bu">all</span>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">isinstance</span>(ob, <span class="bu">list</span>):</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">float</span>(quant(<span class="bu">str</span>(o) <span class="kw">in</span> <span class="bu">str</span>(doc) <span class="cf">for</span> o <span class="kw">in</span> ob))</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">float</span>(<span class="bu">str</span>(ob) <span class="kw">in</span> <span class="bu">str</span>(doc))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>This returns 1.0 if <code>doc</code> contains <code>ob</code>, and 0.0 otherwise. Users can replace this logic or add new predicates that compute partial matches, graded similarities, or probabilistic scores.</p>
-<hr>
+<section id="relevance-scoring" class="level2">
+<h2 class="anchored" data-anchor-id="relevance-scoring">Relevance Scoring</h2>
+<p>For JSON string values, there are a host of functions that may be used to score relevance. These include (but are not limited to, and each is normalized to [0, 1]):</p>
+<ul>
+<li><code>tf-idf</code>: the term frequency-inverse document frequency score, which is a measure of how important a word is to a document in a collection or corpus.</li>
+<li><code>jaccard</code>: the Jaccard similarity between two strings.</li>
+<li><code>levenshtein</code>: the Levenshtein distance between two strings.</li>
+<li><code>cosine-sim</code>: the cosine similarity between embeddings of two strings.</li>
+<li><code>word2vec</code>: This function does not compute a score, but rather returns the <code>word2vec</code> embedding of a string. Subsequent functions can be used to compute a score, like cosine similarity.</li>
+</ul>
 </section>
-<section id="flat-document-support" class="level2">
-<h2 class="anchored" data-anchor-id="flat-document-support">Flat Document Support</h2>
-<p>For flat documents without structured fields, <strong>fuzzy-logic-search</strong> defaults to similarity-based measures. For instance, when you query <code>(contains "Smith")</code> over a <code>.txt</code> file, an internal TF-IDF-based scoring mechanism might produce a relevance score proportional to the frequency and distinctiveness of <code>"Smith"</code> in the document. Thus, even plain text searches benefit from fuzzy logic, capturing how “strongly” a document matches rather than requiring an exact condition.</p>
-<hr>
+<section id="default-fuzzy-predicates" class="level2">
+<h2 class="anchored" data-anchor-id="default-fuzzy-predicates">Default Fuzzy Predicates</h2>
+<p>In our <code>fls</code> package, we offer a comprehensive framework for performing fuzzy searches on structured JSON documents. The package includes default fuzzy membership functions for common numeric comparisons and string comparisons, which can be easily customized or overridden to fit specific requirements. Additionally, a wide array of fuzzy predicates enables versatile and nuanced querying capabilities.</p>
+<section id="default-fuzzy-membership-functions" class="level3">
+<h3 class="anchored" data-anchor-id="default-fuzzy-membership-functions">Default Fuzzy Membership Functions</h3>
+<p>In what follows, we showcase three default fuzzy membership functions that underpin the fuzzy predicates in our package. These functions are designed to provide smooth and intuitive relevance scores based on the degree of match between query conditions and document fields.</p>
+<section id="triangular-membership-function-for-numeric-equality" class="level4">
+<h4 class="anchored" data-anchor-id="triangular-membership-function-for-numeric-equality">Triangular Membership Function for Numeric Equality</h4>
+<p>This function evaluates the degree of equality between two numeric values <span class="math inline">\(x\)</span> and <span class="math inline">\(y\)</span>,</p>
+<p><span class="math display">\[
+\mu_{\text{equal}}(x, y) =
+\begin{cases}
+1 - \dfrac{|x - y|}{\epsilon} &amp; \text{if } |x - y| \leq \epsilon, \\
+0 &amp; \text{otherwise},
+\end{cases}
+\]</span></p>
+<p>where the adaptive tolerance <span class="math display">\[
+\epsilon = k \cdot \max\left(|x|,\, |y|,\, \delta\right)
+\]</span> scales with the input values to provide a smooth transition from full membership to no membership and <span class="math inline">\(k\)</span> is a small constant (e.g., 0.01) that determines the relative tolerance.</p>
+</section>
+<section id="triangular-membership-function-for-numeric-inequality" class="level4">
+<h4 class="anchored" data-anchor-id="triangular-membership-function-for-numeric-inequality">Triangular Membership Function for Numeric Inequality</h4>
+<p>This function assesses the degree to which <span class="math inline">\(x\)</span> is less than or equal to <span class="math inline">\(y\)</span>,</p>
+<p><span class="math display">\[
+\mu_{\leq}(x, y) =
+\begin{cases}
+1 &amp; \text{if } x \leq y - \epsilon, \\
+1 - \dfrac{x - (y - \epsilon)}{2\epsilon} &amp; \text{if } y - \epsilon &lt; x \leq y + \epsilon, \\
+0 &amp; \text{if } x &gt; y + \epsilon,
+\end{cases}
+\]</span></p>
+<p>where the adaptive tolerance <span class="math display">\[
+\epsilon = k \cdot \max\left(|x|,\, |y|,\, \delta\right)
+\]</span> scales with the input values to provide a smooth transition from full membership to no membership and <span class="math inline">\(k\)</span> is a small constant (e.g., 0.01) that determines the relative tolerance.</p>
+</section>
+<section id="levenshtein-distance-based-membership-function-for-string-equality" class="level4">
+<h4 class="anchored" data-anchor-id="levenshtein-distance-based-membership-function-for-string-equality">Levenshtein Distance-Based Membership Function for String Equality</h4>
+<p>This function computes the Levenshtein distance between two strings ( s_1 ) and ( s_2 ) and maps it to a relevance score based on a predefined threshold ( ). The relevance score decreases linearly with the Levenshtein distance, ensuring a smooth transition from full membership to no membership. Here is how the membership function is defined:</p>
+<p><span class="math display">\[
+\mu_{\mathrm{str\_equal}}(s_1, s_2) = 1 - \frac{\mathrm{lev}(s_1, s_2)}{\tau}.
+\]</span></p>
+<p><em>Parameters</em>:</p>
+<ul>
+<li><span class="math inline">\(\tau\)</span>: A threshold value determining the maximum Levenshtein distance for full membership. Defaults to <span class="math inline">\(\tau = \max(|s_1|, |s_2|)\)</span> where <span class="math inline">\(|s|\)</span> denotes the length of string <span class="math inline">\(s\)</span>.</li>
+</ul>
+<p>Levenshtein distance <span class="math inline">\(\mathrm{lev}(s_1, s_2)\)</span> computes the single-character edits required to transform string <span class="math inline">\(s_1\)</span> into string <span class="math inline">\(s_2\)</span>. We normalize this distance by the threshold <span class="math inline">\(\tau\)</span> to obtain a relevance score in the range <span class="math inline">\([0, 1]\)</span>.</p>
+</section>
+</section>
+<section id="customization-and-extensibility" class="level3">
+<h3 class="anchored" data-anchor-id="customization-and-extensibility">Customization and Extensibility</h3>
+<p>While we provide robust defaults for fuzzy predicates like equality and inequality, our package is designed with flexibility in mind. Users can override these defaults to tailor the fuzzy logic behavior to their specific needs.</p>
+</section>
+<section id="supported-fuzzy-predicates" class="level3">
+<h3 class="anchored" data-anchor-id="supported-fuzzy-predicates">Supported Fuzzy Predicates</h3>
+<p>Our package supports a diverse set of <strong>fuzzy predicates</strong> that can be applied to JSON values, enabling a wide range of query types. Some of the supported fuzzy predicates include:</p>
+<ul>
+<li><code>==</code> (also <code>eq?</code>): Fuzzy equality</li>
+<li><code>&gt;</code> (also <code>lt?</code>): Greater than</li>
+<li><code>&lt;</code> (also <code>gt?</code>): Less than</li>
+<li><code>&gt;=</code> (also <code>gte?</code>): Greater than or equal to</li>
+<li><code>&lt;=</code> (also <code>lte?</code>): Less than or equal to</li>
+<li><code>in?</code>: Membership within a range or set</li>
+<li><code>starts-with?</code>: String prefix matching</li>
+<li><code>ends-with?</code>: String suffix matching</li>
+<li><code>contains?</code>: Substring matching</li>
+<li><code>regex?</code>: Regular expression matching, this defaults to a crisp match</li>
+<li><code>word2vec?</code>: Cosine similarity between strings based on their word embeddings</li>
+<li><code>jaccard?</code>: Jaccard similarity between lists</li>
+<li><code>tf-idf?</code>: Normalized TF-IDF score between the query string and the JSON value</li>
+<li><code>lev?</code>: Normalized levenshtein distance between strings</li>
+<li>…and many more</li>
+</ul>
+<p>For a complete list of available fuzzy predicates and their implementations, please refer to the <a href="https://github.com/queelius/fls">GitHub repository</a>.</p>
+</section>
+<section id="sub-queries-and-json-path-integration" class="level3">
+<h3 class="anchored" data-anchor-id="sub-queries-and-json-path-integration">Sub-Queries and JSON Path Integration</h3>
+<p>In addition to fuzzy predicates, our package facilitates <strong>sub-queries</strong> that extract values from specific JSON paths within your documents. These sub-queries do not directly receive degrees-of-membership. Instead, fuzzy predicates are applied to the output of these sub-queries, at which point the corresponding membership functions assign a relevance score based on the fuzzy logic rules.</p>
+<p><strong>Example Workflow:</strong></p>
+<ul>
+<li><strong>Sub-Query</strong>: Extract a value from a JSON path (e.g., <code>user.age</code>).</li>
+<li><strong>Predicate Application</strong>: Apply a fuzzy predicate (e.g., <code>&gt;=</code>) to the extracted value.</li>
+<li><strong>Scoring</strong>: The predicate evaluates the condition and assigns a DoM, influencing the overall relevance score of the document.</li>
+</ul>
+<p>This workflow allows for fine-grained control over the relevance scoring process, enabling complex queries that leverage both JSON structure and fuzzy logic predicates.</p>
+<p>Here is a sample of functions that can be used to map JSON values to other values:</p>
+<ul>
+<li><code>path</code>: Extracts a value from a JSON path, based on dot-separated keys and array indices. Wildcards <code>*</code> and <code>**</code> are supported, along with array slicing.</li>
+<li><code>lower-case</code>: Converts a string to lowercase.</li>
+<li><code>length</code>: Computes the length of a string or list.</li>
+<li><code>word-count</code>: Counts the number of words in a string.</li>
+<li><code>sum</code>: Computes the sum of a list of numbers.</li>
+<li><code>mean</code>: Computes the mean of a list of numbers.</li>
+<li><code>max</code>: Computes the maximum value in a list.</li>
+<li><code>min</code>: Computes the minimum value in a list.</li>
+<li><code>concat</code>: Concatenates a list of strings.</li>
+<li><code>unique</code>: Returns unique elements in a list.</li>
+<li><code>sort</code>: Sorts a list of numbers or strings.</li>
+<li><code>reverse</code>: Reverses a list of numbers or strings.</li>
+<li><code>flatten</code>: Flattens a nested list.</li>
+<li><code>slice</code>: Extracts a sub-list based on start and end indices.</li>
+<li><code>filter</code>: Filters a list based on a predicate function.</li>
+<li><code>map</code>: Applies a function to each element of a list.</li>
+<li><code>reduce</code>: Reduces a list to a single value using a binary function.</li>
+<li>…and many more.</li>
+</ul>
+</section>
+</section>
+<section id="the-path-function" class="level2">
+<h2 class="anchored" data-anchor-id="the-path-function">The <code>path</code> Function</h2>
+<p>The <code>path</code> function is a key component of the <code>fls</code> package, allowing users to extract values from JSON documents based on specific paths. This function is particularly useful for querying structured data and applying fuzzy predicates to the extracted values. The <code>path</code> function supports a variety of features, including:</p>
+<ul>
+<li><strong>Dot-separated keys</strong>: Traverse nested JSON objects using dot-separated keys (e.g., <code>user.name</code>).</li>
+<li><strong>Array indices</strong>: Access elements in JSON arrays using zero-based indices (e.g., <code>users.[3].name</code>).</li>
+<li><strong>Wildcards</strong>: Use <code>*</code> to match any key or index at a given level (e.g., <code>users.*.name</code>).</li>
+<li><strong>Recursive wildcards</strong>: Use <code>**</code> to match any key or index at any level of nesting (e.g., <code>users.**.name</code>).</li>
+</ul>
+<p>The <code>path</code> function provides a powerful mechanism for extracting values from JSON documents, enabling users to build complex queries that leverage the hierarchical structure of the data.</p>
 </section>
 <section id="homomorphism-theory-and-examples" class="level2">
 <h2 class="anchored" data-anchor-id="homomorphism-theory-and-examples">Homomorphism: Theory and Examples</h2>
 <p>A notable mathematical property of this system is that the mapping from queries (<code>Q</code>) to result sets (<code>R</code>) is a <strong>homomorphism</strong>. This means:</p>
 <ol type="1">
 <li>Operations on queries translate directly to operations on their corresponding fuzzy result sets.</li>
-<li>If you have queries <code>Q1</code> and <code>Q2</code>, and their corresponding result sets <code>R1</code> and <code>R2</code>, then: [ (Q1 ,, Q2) = (Q1) ,, (Q2) = R1 R2 ] where the <code>and</code> operation on results is applied element-wise to their membership values.</li>
+<li>If you have queries <code>Q1</code> and <code>Q2</code>, and their corresponding result sets <code>R1</code> and <code>R2</code>, then: <span class="math display">\[
+\Phi(Q1 \mathrm{and}\, Q2) = \Phi(Q1) \mathrm{and}\, \Phi(Q2) = R1 \cap R2
+\]</span> where the <code>and</code> operation on results is applied element-wise to their membership values.</li>
 </ol>
-<p><strong>Example</strong>:<br>
-- Suppose <code>Q1(d)</code> assigns a relevance of 0.8 to document <code>d</code>, and <code>Q2(d)</code> assigns 0.6.<br>
-- <code>Q1 and Q2</code> would assign <code>min(0.8, 0.6) = 0.6</code> to <code>d</code>.<br>
-- Likewise, the result sets <code>R1</code> and <code>R2</code> induced by <code>Q1</code> and <code>Q2</code> would yield a result <code>R = R1 and R2</code> that has the same minimal intersection membership.</p>
+<p><strong>Example</strong>:</p>
+<ul>
+<li>Suppose <code>Q1(d)</code> assigns a relevance of 0.8 to document <code>d</code>, and <code>Q2(d)</code> assigns 0.6.<br>
+</li>
+<li><code>Q1 and Q2</code> would assign <code>min(0.8, 0.6) = 0.6</code> to <code>d</code>.<br>
+</li>
+<li>Likewise, the result sets <code>R1</code> and <code>R2</code> induced by <code>Q1</code> and <code>Q2</code> would yield a result <code>R = R1 and R2</code> that has the same minimal intersection membership.</li>
+</ul>
 <p>This property ensures <strong>consistency and predictability</strong>: whether you combine fuzzy sets at the query level or at the result level, you arrive at the same final degrees of membership.</p>
 <p><strong>Non-Invertibility</strong>:<br>
 While we can map <code>Q</code> to <code>R</code>, we cannot uniquely recover <code>Q</code> from <code>R</code>. Different queries may produce identical result sets, so the process is not invertible.</p>
-<hr>
 </section>
 <section id="evaluation-and-post-processing" class="level2">
 <h2 class="anchored" data-anchor-id="evaluation-and-post-processing">Evaluation and Post-Processing</h2>
-<p>Evaluating a query <code>Q</code> over a document set <code>D</code> yields a fuzzy set <code>R</code>: [ R = {(d, Q(d)) d D } ]</p>
-<p>Since both queries and results are fuzzy sets, you can post-process <code>R</code> using the same operations: - Apply logical operators to combine multiple result sets (<code>R = R1 and (not R2)</code>). - Use modifiers on results directly (<code>very R</code>), sharpening or broadening the final membership values without re-running the original queries.</p>
+<p>Evaluating a query <code>Q</code> over a document set <code>D</code> yields a fuzzy set <code>R</code>: <span class="math display">\[
+R = \{(d, Q(d)) \mid d \in D \}
+\]</span></p>
+<p>Since both queries and results are fuzzy sets, you can post-process result <code>R</code> using the same fuzzy operations:</p>
+<ul>
+<li>Apply logical operators to combine multiple result sets (<code>R = R1 and (not R2)</code>).</li>
+<li>Use modifiers on results directly (<code>very(R)</code>), sharpening or broadening the final membership values without re-running the original queries.</li>
+</ul>
 <p>This flexible architecture encourages iterative refinement, experimentation, and dynamic adjustment of search results after the initial computation.</p>
-<hr>
 </section>
 <section id="examples" class="level2">
 <h2 class="anchored" data-anchor-id="examples">Examples</h2>
 <p><strong>Simple Structured Query</strong>:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode lisp code-with-copy"><code class="sourceCode commonlisp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>(field age (<span class="op">&gt;</span> <span class="dv">25</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode lisp code-with-copy"><code class="sourceCode commonlisp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>(<span class="op">&gt;</span> :age <span class="dv">25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>For a document <code>{"age": 30}</code>, this might yield a high membership (close to 1.0), while <code>{"age": 20}</code> might yield a lower membership (0.0 if crisp, or a partial score if using a graded comparison).</p>
 <p><strong>Compound Query</strong>:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode lisp code-with-copy"><code class="sourceCode commonlisp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">and</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  (field address.city (== <span class="st">"New York"</span>))</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  (<span class="kw">not</span> (field age (<span class="op">&lt;</span> <span class="dv">25</span>))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode lisp code-with-copy"><code class="sourceCode commonlisp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">and</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  (== :address.city <span class="st">"New York"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  (<span class="kw">not</span> (<span class="op">&lt;</span> :age <span class="dv">25</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>This increases membership for documents whose <code>address.city</code> closely matches <code>"New York"</code> and whose <code>age</code> is not less than 25, combining these conditions fuzzily.</p>
 <p><strong>Post-Processing</strong>: If <code>R1</code> results from <code>Q1</code>, and <code>R2</code> from <code>Q2</code>, you can form a new result set:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode lisp code-with-copy"><code class="sourceCode commonlisp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>R <span class="op">=</span> very (R1 <span class="kw">or</span> R2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode lisp code-with-copy"><code class="sourceCode commonlisp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>R <span class="op">=</span> very (R1 <span class="kw">or</span> R2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>This applies the <code>or</code> (max) operation at the result level and then the <code>very</code> modifier to emphasize top matches.</p>
-<hr>
 </section>
 <section id="applications-and-use-cases" class="level2">
 <h2 class="anchored" data-anchor-id="applications-and-use-cases">Applications and Use Cases</h2>
@@ -249,16 +405,17 @@ While we can map <code>Q</code> to <code>R</code>, we cannot uniquely recover <c
 <li><strong>Recommendation Systems</strong>: Combine multiple user preference queries fuzzily, weighting attributes like price, popularity, and genre to produce a nuanced recommendation score.</li>
 <li><strong>Data Analysis</strong>: Query large JSON datasets or plain text corpora with flexible, human-like reasoning, enabling exploratory data analysis and gradual refinement of search criteria.</li>
 </ul>
-<hr>
 </section>
 <section id="future-directions" class="level2">
 <h2 class="anchored" data-anchor-id="future-directions">Future Directions</h2>
-<ol type="1">
-<li><strong>Adaptive Defuzzification</strong>: Map membership scores back to linguistic categories (e.g., “highly relevant”, “mildly relevant”) for user-facing explanations.</li>
-<li><strong>Advanced Similarity Measures</strong>: Integrate vector-based semantic similarity or machine learning–derived embeddings to produce more meaningful fuzzy matches.</li>
+<ul>
+<li><strong>Defuzzification</strong>: Map membership scores back to linguistic categories (e.g., “highly relevant”, “mildly relevant”) for user-facing explanations.</li>
 <li><strong>Performance and Indexing</strong>: Scale to larger datasets with indexing and caching strategies, ensuring efficiency without compromising fuzzy logic principles.</li>
-</ol>
-<hr>
+</ul>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+<p><code>fls</code> offers a unified, theory-driven approach to querying JSON documents through the lens of fuzzy logic. It encourages a more nuanced view of relevance, supports extensibility through custom fuzzy predicates, and maintains a homomorphism between queries and their result sets. Ultimately, it stands as both a pedagogical tool and a practical system for modern information retrieval scenarios.</p>
 </section>
 <section id="references" class="level2">
 <h2 class="anchored" data-anchor-id="references">References</h2>
@@ -267,8 +424,6 @@ While we can map <code>Q</code> to <code>R</code>, we cannot uniquely recover <c
 <li>Klir, G. J., &amp; Yuan, B. (1995). <em>Fuzzy sets and fuzzy logic: theory and applications.</em> Prentice Hall.</li>
 <li>Zimmermann, H.-J. (1996). <em>Fuzzy set theory—and its applications.</em> Springer.</li>
 </ul>
-<hr>
-<p><strong>fuzzy-logic-search</strong> offers a unified, theory-driven approach to querying documents—both structured and unstructured—through the lens of fuzzy logic. It encourages a more nuanced view of relevance, supports extensibility through custom predicates, and maintains a homomorphism between queries and their result sets. Ultimately, it stands as both a pedagogical tool and a practical system for modern information retrieval scenarios.</p>
 </section>
 </section>
 
