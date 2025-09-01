@@ -46,8 +46,11 @@ Homepage = "https://github.com/yourusername/fuzzy-logic-search"
 Repository = "https://github.com/yourusername/fuzzy-logic-search"
 Issues = "https://github.com/yourusername/fuzzy-logic-search/issues"
 
+[project.scripts]
+fls = "fuzzy_logic_search.console_script:main"
+
 [tool.hatch.build.targets.wheel]
-packages = ["src/fuzzy_logic_search"]
+packages = ["fuzzy_logic_search"]
 
 [tool.black]
 line-length = 88

@@ -212,3 +212,168 @@ class FuzzyJsonQuery:
     def __repr__(self) -> str:
         return f"FuzzyJsonQuery({self.ast})"
 
+
+def fuzzy_eval(query: List, doc: Dict) -> float:
+    """
+    Evaluate a fuzzy query expression against a single document.
+    
+    This is a standalone function that can be used by the lazy streaming
+    system to evaluate fuzzy queries on individual documents.
+    
+    Args:
+        query: Fuzzy query expression (AST)
+        doc: JSON document to evaluate against
+        
+    Returns:
+        Membership degree in [0, 1]
+    """
+    # Create a temporary FuzzyJsonQuery to leverage existing evaluation logic
+    fq = FuzzyJsonQuery(query)
+    
+    # Internal evaluation function from the class
+    def _eval(node: Any, document: Dict) -> float:
+        if not isinstance(node, list):
+            # Leaf node - return as is
+            return node if isinstance(node, (int, float)) else 1.0
+            
+        op = node[0]
+        operands = node[1:]
+        
+        # Handle field access
+        if op == "field" or (isinstance(op, str) and op.startswith(":")):
+            if op.startswith(":"):
+                # Shorthand field access like ":name"
+                field_path = op[1:]
+                if len(operands) == 0:
+                    # Just return field value existence check
+                    values = get_values_by_field_path(document, field_path)
+                    return 1.0 if values else 0.0
+                else:
+                    # Apply predicate to field values
+                    values = get_values_by_field_path(document, field_path)
+                    if not values:
+                        return 0.0
+                    # Evaluate predicate on each value and take max (existential)
+                    degrees = [_eval(operands[0], val) if isinstance(operands[0], list)
+                              else fq.preds.get("==", lambda x, y: 1.0 if x == y else 0.0)([val, operands[0]], document)
+                              for val in values]
+                    return max(degrees) if degrees else 0.0
+            else:
+                # Standard field operator
+                field_path = operands[0]
+                values = get_values_by_field_path(document, field_path)
+                if len(operands) > 1:
+                    expr = operands[1]
+                    degrees = [_eval(expr, val) if isinstance(expr, list)
+                              else fq.preds.get("==", lambda x, y: 1.0 if x == y else 0.0)([val, expr], document)
+                              for val in values]
+                    # Default to existential quantification (any)
+                    return max(degrees) if degrees else 0.0
+                else:
+                    return 1.0 if values else 0.0
+        
+        # Handle path operator for field extraction
+        elif op == "path" or op == "@":
+            if len(operands) == 1:
+                field_path = operands[0]
+                if isinstance(field_path, str):
+                    # Remove @ prefix if present
+                    if field_path.startswith("@"):
+                        field_path = field_path[1:]
+                    values = get_values_by_field_path(document, field_path)
+                    # For path extraction, return 1.0 if field exists, 0.0 otherwise
+                    return 1.0 if values else 0.0
+            return 0.0
+        
+        # Handle exists operator
+        elif op == "exists" or op == "exists?":
+            field_path = operands[0]
+            if isinstance(field_path, str) and field_path.startswith("@"):
+                field_path = field_path[1:]
+            values = get_values_by_field_path(document, field_path)
+            return 1.0 if values else 0.0
+        
+        # Handle fuzzy modifiers
+        elif op in fq.unary_ops:
+            operand_value = _eval(operands[0], document)
+            return fq.unary_ops[op](operand_value)
+        
+        # Handle logical operators
+        elif op in fq.nary_ops:
+            operand_values = [_eval(operand, document) for operand in operands]
+            return fq.nary_ops[op](*operand_values)
+        
+        # Handle comparison operators
+        elif op in ["==", "eq?", "!=", "neq?", ">", "gt?", "<", "lt?", ">=", "gte?", "<=", "lte?"]:
+            if len(operands) == 2:
+                left = operands[0]
+                right = operands[1]
+                
+                # Extract values if they're field paths
+                if isinstance(left, str) and left.startswith("@"):
+                    left_values = get_values_by_field_path(document, left[1:])
+                    left = left_values[0] if left_values else None
+                elif isinstance(left, list):
+                    left = _eval(left, document)
+                    
+                if isinstance(right, str) and right.startswith("@"):
+                    right_values = get_values_by_field_path(document, right[1:])
+                    right = right_values[0] if right_values else None
+                elif isinstance(right, list):
+                    right = _eval(right, document)
+                
+                # Apply fuzzy predicate
+                if op in ["==", "eq?"]:
+                    pred = fq.preds.get("==", lambda x, y: 1.0 if x == y else 0.0)
+                elif op in ["!=", "neq?"]:
+                    pred = fq.preds.get("!=", lambda x, y: 1.0 if x != y else 0.0)
+                elif op in [">", "gt?"]:
+                    pred = fq.preds.get(">", lambda x, y: 1.0 if x > y else 0.0)
+                elif op in ["<", "lt?"]:
+                    pred = fq.preds.get("<", lambda x, y: 1.0 if x < y else 0.0)
+                elif op in [">=", "gte?"]:
+                    pred = fq.preds.get(">=", lambda x, y: 1.0 if x >= y else 0.0)
+                elif op in ["<=", "lte?"]:
+                    pred = fq.preds.get("<=", lambda x, y: 1.0 if x <= y else 0.0)
+                
+                return pred([left, right], document)
+        
+        # Handle string predicates
+        elif op in ["contains?", "starts-with?", "ends-with?", "regex?", "in?"]:
+            if op in fq.preds:
+                eval_operands = []
+                for operand in operands:
+                    if isinstance(operand, str) and operand.startswith("@"):
+                        values = get_values_by_field_path(document, operand[1:])
+                        eval_operands.append(values[0] if values else "")
+                    elif isinstance(operand, list):
+                        eval_operands.append(_eval(operand, document))
+                    else:
+                        eval_operands.append(operand)
+                return fq.preds[op](eval_operands, document)
+        
+        # Handle other predicates in the predicate dictionary
+        elif op in fq.preds:
+            eval_operands = []
+            for operand in operands:
+                if isinstance(operand, str) and operand.startswith("@"):
+                    values = get_values_by_field_path(document, operand[1:])
+                    eval_operands.append(values[0] if values else None)
+                elif isinstance(operand, list):
+                    eval_operands.append(_eval(operand, document))
+                else:
+                    eval_operands.append(operand)
+            return fq.preds[op](eval_operands, document)
+        
+        # Default: unknown operator returns 0
+        return 0.0
+    
+    try:
+        result = _eval(query, doc)
+        # Ensure result is in [0, 1]
+        return max(0.0, min(1.0, float(result)))
+    except Exception as e:
+        # On error, return 0 membership
+        logging.debug(f"Error evaluating fuzzy query: {e}")
+        return 0.0
+

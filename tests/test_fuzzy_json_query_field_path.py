@@ -1,5 +1,10 @@
 import unittest
-from algebraic_search.fuzzy_json_query import get_values_by_field_path
+import sys
+import os
+# Add parent directory to path to import the module
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from fuzzy_logic_search.fuzzy_json_query import get_values_by_field_path
 
 
 class TestFuzzyJsonQuery(unittest.TestCase):
