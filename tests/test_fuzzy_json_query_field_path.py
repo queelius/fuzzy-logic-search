@@ -69,7 +69,7 @@ class TestFuzzyJsonQuery(unittest.TestCase):
             "c": 4
         }
         field_path = "**.c"
-        expected = [1, 2, 3]
+        expected = [1, 2, 3, 4]  # Includes top-level "c": 4
         result = get_values_by_field_path(json_data, field_path)
         self.assertCountEqual(result, expected)
 

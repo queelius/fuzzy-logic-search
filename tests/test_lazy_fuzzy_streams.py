@@ -327,12 +327,17 @@ class TestFuzzyEval(unittest.TestCase):
     
     def test_fuzzy_modifiers(self):
         """Test fuzzy modifiers in eval."""
-        doc = {"score": 85}
-        
+        # Use a score that's in the fuzzy boundary region
+        doc = {"score": 79}  # In the fuzzy region to get partial membership
+
         # Very modifier
         base_membership = fuzzy_eval([">=", "@score", 80], doc)
         very_membership = fuzzy_eval(["very", [">=", "@score", 80]], doc)
-        
+
+        # Ensure we have a base membership between 0 and 1
+        self.assertGreater(base_membership, 0.0)
+        self.assertLess(base_membership, 1.0)
+
         # Very should reduce membership (square it)
         self.assertLess(very_membership, base_membership)
         
